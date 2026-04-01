@@ -43,7 +43,6 @@ function CreatePageContent() {
     const styleParam = searchParams.get("style");
     if (styleParam) {
       setContentStyle(styleParam);
-      // We don't toast here to avoid cluttering the UI on mount
     }
   }, [searchParams]);
 
