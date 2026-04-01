@@ -24,7 +24,9 @@ import {
   Image as ImageIcon, 
   Video as VideoIcon,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  User,
+  Zap
 } from "lucide-react";
 import { generateAICharacterPersonality } from "@/ai/flows/generate-ai-character-personality";
 import { generateSocialMediaCaption } from "@/ai/flows/generate-social-media-caption";
@@ -42,6 +44,7 @@ function CreatePageContent() {
   const searchParams = useSearchParams();
   const [step, setStep] = useState<"character" | "studio">("character");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [charRevealed, setCharRevealed] = useState(false);
   const [generatedResult, setGeneratedResult] = useState<{
     caption: string;
     hashtags: string[];
@@ -54,7 +57,8 @@ function CreatePageContent() {
     name: "",
     age: 18,
     style: "",
-    personality: ""
+    personality: "",
+    imageUrl: ""
   });
 
   // Studio State
@@ -80,7 +84,18 @@ function CreatePageContent() {
         name: charData.name,
         style: charData.style
       });
-      setCharData({ ...charData, personality: result.personalityDescription });
+      
+      // Assign a consistent image seed for the character based on name
+      const charSeed = charData.name.toLowerCase().replace(/\s/g, '');
+      const imageUrl = `https://picsum.photos/seed/${charSeed}/600/800`;
+      
+      setCharData({ 
+        ...charData, 
+        personality: result.personalityDescription,
+        imageUrl: imageUrl
+      });
+      setCharRevealed(true);
+      toast({ title: "Character traits generated!" });
     } catch (e) {
       toast({ title: "Generation failed. Try again." });
     } finally {
@@ -155,78 +170,103 @@ function CreatePageContent() {
         <Tabs value={step} onValueChange={(v) => setStep(v as any)} className="w-full">
           <TabsList className="grid w-full grid-cols-2 bg-zinc-900 border border-white/5 h-12">
             <TabsTrigger value="character" className="data-[state=active]:bg-primary">1. Character</TabsTrigger>
-            <TabsTrigger value="studio" className="data-[state=active]:bg-primary" disabled={!charData.name}>2. Content</TabsTrigger>
+            <TabsTrigger value="studio" className="data-[state=active]:bg-primary" disabled={!charRevealed}>2. Content</TabsTrigger>
           </TabsList>
 
           <TabsContent value="character" className="mt-6">
-            <Card className="bg-zinc-900 border-white/5 overflow-hidden">
-              <CardHeader>
-                <CardTitle>Create Persona</CardTitle>
-                <CardDescription>Define the identity of your AI influencer.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Influence Name</Label>
-                  <Input 
-                    id="name" 
-                    placeholder="e.g. Luna Spark" 
-                    className="bg-black border-white/10"
-                    value={charData.name}
-                    onChange={(e) => setCharData({...charData, name: e.target.value})}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="age">Base Age (18+)</Label>
-                  <Input 
-                    id="age" 
-                    type="number" 
-                    min={18} 
-                    className="bg-black border-white/10"
-                    value={charData.age}
-                    onChange={(e) => setCharData({...charData, age: parseInt(e.target.value) || 18})}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="style">Aesthetic Style</Label>
-                  <Input 
-                    id="style" 
-                    placeholder="e.g. Y2K Techwear, Minimalist Luxe" 
-                    className="bg-black border-white/10"
-                    value={charData.style}
-                    onChange={(e) => setCharData({...charData, style: e.target.value})}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="personality">Detailed Personality</Label>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="text-accent h-auto p-0 hover:bg-transparent"
-                      onClick={handleGeneratePersonality}
-                      disabled={isGenerating || !charData.name || !charData.style}
-                    >
-                      {isGenerating ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Wand2 className="w-4 h-4 mr-2" />}
-                      Generate AI Traits
-                    </Button>
+            {!charRevealed ? (
+              <Card className="bg-zinc-900 border-white/5 overflow-hidden">
+                <CardHeader>
+                  <CardTitle>Create Persona</CardTitle>
+                  <CardDescription>Define the identity of your AI influencer.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Influence Name</Label>
+                    <Input 
+                      id="name" 
+                      placeholder="e.g. Luna Spark" 
+                      className="bg-black border-white/10"
+                      value={charData.name}
+                      onChange={(e) => setCharData({...charData, name: e.target.value})}
+                    />
                   </div>
-                  <Textarea 
-                    id="personality" 
-                    placeholder="Describe how they act and interact..." 
-                    className="bg-black border-white/10 min-h-[120px]"
-                    value={charData.personality}
-                    onChange={(e) => setCharData({...charData, personality: e.target.value})}
+                  <div className="space-y-2">
+                    <Label htmlFor="age">Base Age (18+)</Label>
+                    <Input 
+                      id="age" 
+                      type="number" 
+                      min={18} 
+                      className="bg-black border-white/10"
+                      value={charData.age}
+                      onChange={(e) => setCharData({...charData, age: parseInt(e.target.value) || 18})}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="style">Aesthetic Style</Label>
+                    <Input 
+                      id="style" 
+                      placeholder="e.g. Y2K Techwear, Minimalist Luxe" 
+                      className="bg-black border-white/10"
+                      value={charData.style}
+                      onChange={(e) => setCharData({...charData, style: e.target.value})}
+                    />
+                  </div>
+                  <Button 
+                    className="w-full bg-primary hover:bg-primary/80 font-bold"
+                    onClick={handleGeneratePersonality}
+                    disabled={isGenerating || !charData.name || !charData.style}
+                  >
+                    {isGenerating ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Wand2 className="w-4 h-4 mr-2" />}
+                    Initialize Character
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-6">
+                <div className="relative aspect-[3/4] w-full rounded-2xl overflow-hidden border-4 border-primary shadow-2xl shadow-primary/20">
+                  <Image 
+                    src={charData.imageUrl} 
+                    alt="AI Character Preview" 
+                    fill 
+                    className="object-cover"
+                    priority
                   />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent" />
+                  <div className="absolute bottom-6 left-6 right-6">
+                    <h2 className="text-3xl font-black italic uppercase drop-shadow-xl">{charData.name}</h2>
+                    <p className="text-accent font-bold uppercase tracking-widest text-sm drop-shadow-lg">{charData.style}</p>
+                  </div>
+                  <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full border border-white/20 flex items-center gap-2">
+                    <Zap className="w-3 h-3 text-primary fill-primary" />
+                    <span className="text-[10px] font-black uppercase tracking-tighter">AI Ready</span>
+                  </div>
                 </div>
-                <Button 
-                  className="w-full bg-primary hover:bg-primary/80 font-bold"
-                  onClick={() => setStep("studio")}
-                  disabled={!charData.name || !charData.personality}
-                >
-                  Continue to Studio
-                </Button>
-              </CardContent>
-            </Card>
+
+                <Card className="bg-zinc-900 border-white/5">
+                  <CardHeader>
+                    <CardTitle className="text-sm font-bold flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-accent" />
+                      Generated Traits
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <p className="text-sm text-muted-foreground leading-relaxed italic border-l-2 border-primary pl-4">
+                      {charData.personality}
+                    </p>
+                    <div className="grid grid-cols-2 gap-3 pt-2">
+                      <Button variant="outline" className="border-white/10 bg-black" onClick={() => setCharRevealed(false)}>
+                        <User className="w-4 h-4 mr-2" />
+                        Edit Details
+                      </Button>
+                      <Button className="bg-primary font-bold" onClick={() => setStep("studio")}>
+                        Enter Studio
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="studio" className="mt-6">
@@ -241,8 +281,13 @@ function CreatePageContent() {
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="p-4 rounded-lg bg-black border border-white/10 flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center font-bold text-xl">
-                      {charData.name?.[0] || "?"}
+                    <div className="w-12 h-12 rounded-full border-2 border-primary overflow-hidden relative">
+                      <Image 
+                        src={charData.imageUrl} 
+                        alt="Profile" 
+                        fill 
+                        className="object-cover"
+                      />
                     </div>
                     <div>
                       <p className="font-bold">{charData.name}</p>
