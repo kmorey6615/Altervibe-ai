@@ -26,7 +26,9 @@ import {
   ChevronLeft,
   ChevronRight,
   User,
-  Zap
+  Zap,
+  RefreshCcw,
+  Heart
 } from "lucide-react";
 import { generateAICharacterPersonality } from "@/ai/flows/generate-ai-character-personality";
 import { generateSocialMediaCaption } from "@/ai/flows/generate-social-media-caption";
@@ -45,6 +47,7 @@ function CreatePageContent() {
   const [step, setStep] = useState<"character" | "studio">("character");
   const [isGenerating, setIsGenerating] = useState(false);
   const [charRevealed, setCharRevealed] = useState(false);
+  const [charSaved, setCharSaved] = useState(false);
   const [generatedResult, setGeneratedResult] = useState<{
     caption: string;
     hashtags: string[];
@@ -95,12 +98,21 @@ function CreatePageContent() {
         imageUrl: imageUrl
       });
       setCharRevealed(true);
-      toast({ title: "Character traits generated!" });
+      setCharSaved(false);
+      toast({ title: "Character identity initialized!" });
     } catch (e) {
       toast({ title: "Generation failed. Try again." });
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  const handleSaveCharacter = () => {
+    setCharSaved(true);
+    toast({ 
+      title: "Influencer Saved!",
+      description: `${charData.name} is now in your roster.`
+    });
   };
 
   const handleGenerateContent = async () => {
@@ -169,7 +181,7 @@ function CreatePageContent() {
 
         <Tabs value={step} onValueChange={(v) => setStep(v as any)} className="w-full">
           <TabsList className="grid w-full grid-cols-2 bg-zinc-900 border border-white/5 h-12">
-            <TabsTrigger value="character" className="data-[state=active]:bg-primary">1. Character</TabsTrigger>
+            <TabsTrigger value="character" className="data-[state=active]:bg-primary">1. Identity</TabsTrigger>
             <TabsTrigger value="studio" className="data-[state=active]:bg-primary" disabled={!charRevealed}>2. Content</TabsTrigger>
           </TabsList>
 
@@ -182,7 +194,7 @@ function CreatePageContent() {
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="space-y-2">
-                    <Label htmlFor="name">Influence Name</Label>
+                    <Label htmlFor="name">Influencer Name</Label>
                     <Input 
                       id="name" 
                       placeholder="e.g. Luna Spark" 
@@ -213,12 +225,12 @@ function CreatePageContent() {
                     />
                   </div>
                   <Button 
-                    className="w-full bg-primary hover:bg-primary/80 font-bold"
+                    className="w-full bg-primary hover:bg-primary/80 font-bold h-12"
                     onClick={handleGeneratePersonality}
                     disabled={isGenerating || !charData.name || !charData.style}
                   >
                     {isGenerating ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Wand2 className="w-4 h-4 mr-2" />}
-                    Initialize Character
+                    Initialize Influencer
                   </Button>
                 </CardContent>
               </Card>
@@ -239,7 +251,7 @@ function CreatePageContent() {
                   </div>
                   <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full border border-white/20 flex items-center gap-2">
                     <Zap className="w-3 h-3 text-primary fill-primary" />
-                    <span className="text-[10px] font-black uppercase tracking-tighter">AI Ready</span>
+                    <span className="text-[10px] font-black uppercase tracking-tighter">AI READY</span>
                   </div>
                 </div>
 
@@ -247,20 +259,39 @@ function CreatePageContent() {
                   <CardHeader>
                     <CardTitle className="text-sm font-bold flex items-center gap-2">
                       <Sparkles className="w-4 h-4 text-accent" />
-                      Generated Traits
+                      Persona Blueprint
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-4">
+                  <CardContent className="space-y-6">
                     <p className="text-sm text-muted-foreground leading-relaxed italic border-l-2 border-primary pl-4">
                       {charData.personality}
                     </p>
-                    <div className="grid grid-cols-2 gap-3 pt-2">
-                      <Button variant="outline" className="border-white/10 bg-black" onClick={() => setCharRevealed(false)}>
-                        <User className="w-4 h-4 mr-2" />
-                        Edit Details
-                      </Button>
-                      <Button className="bg-primary font-bold" onClick={() => setStep("studio")}>
-                        Enter Studio
+                    
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-2 gap-3">
+                        <Button 
+                          variant="outline" 
+                          className="border-white/10 bg-black hover:bg-zinc-800" 
+                          onClick={() => setCharRevealed(false)}
+                        >
+                          <RefreshCcw className="w-4 h-4 mr-2" />
+                          Try Again
+                        </Button>
+                        <Button 
+                          className={charSaved ? "bg-green-600 hover:bg-green-700" : "bg-zinc-100 text-black hover:bg-white"}
+                          onClick={handleSaveCharacter}
+                        >
+                          {charSaved ? <CheckCircle2 className="w-4 h-4 mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+                          {charSaved ? "Saved" : "Save Influencer"}
+                        </Button>
+                      </div>
+                      
+                      <Button 
+                        className="w-full bg-primary font-black h-12 text-lg italic uppercase" 
+                        onClick={() => setStep("studio")}
+                      >
+                        Enter Content Studio
+                        <ChevronRight className="w-5 h-5 ml-1" />
                       </Button>
                     </div>
                   </CardContent>
@@ -275,9 +306,9 @@ function CreatePageContent() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Sparkles className="w-5 h-5 text-accent" />
-                    Content Studio
+                    Production Studio
                   </CardTitle>
-                  <CardDescription>Select a vibe for your next viral post.</CardDescription>
+                  <CardDescription>Direct your influencer for their next post.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="p-4 rounded-lg bg-black border border-white/10 flex items-center gap-4">
@@ -330,7 +361,7 @@ function CreatePageContent() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label>{contentType === 'photo' ? 'Collection Style' : 'Video Style'}</Label>
+                    <Label>{contentType === 'photo' ? 'Collection Vibe' : 'Video Style'}</Label>
                     <Select value={contentStyle} onValueChange={setContentStyle}>
                       <SelectTrigger className="bg-black border-white/10">
                         <SelectValue placeholder="Select style" />
@@ -442,7 +473,7 @@ function CreatePageContent() {
                       </Button>
                     </div>
 
-                    <Button className="w-full bg-primary" onClick={() => {
+                    <Button className="w-full bg-primary font-bold h-12" onClick={() => {
                       setGeneratedResult(null);
                       toast({ title: "Post saved to your feed!" });
                     }}>
@@ -463,7 +494,7 @@ function CreatePageContent() {
 
 export default function CreatePage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-black flex items-center justify-center text-primary font-bold italic animate-pulse">Loading Studio...</div>}>
+    <Suspense fallback={<div className="min-h-screen bg-black flex items-center justify-center text-primary font-bold italic animate-pulse">Initializing Studio...</div>}>
       <CreatePageContent />
     </Suspense>
   );
