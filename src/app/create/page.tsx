@@ -12,10 +12,30 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Wand2, Copy, Download, Save, CheckCircle2, Activity, Sparkles, Image as ImageIcon, Video as VideoIcon } from "lucide-react";
+import { 
+  Loader2, 
+  Wand2, 
+  Copy, 
+  Download, 
+  Save, 
+  CheckCircle2, 
+  Activity, 
+  Sparkles, 
+  Image as ImageIcon, 
+  Video as VideoIcon,
+  ChevronLeft,
+  ChevronRight
+} from "lucide-react";
 import { generateAICharacterPersonality } from "@/ai/flows/generate-ai-character-personality";
 import { generateSocialMediaCaption } from "@/ai/flows/generate-social-media-caption";
 import Image from "next/image";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
 
 function CreatePageContent() {
   const { toast } = useToast();
@@ -25,7 +45,7 @@ function CreatePageContent() {
   const [generatedResult, setGeneratedResult] = useState<{
     caption: string;
     hashtags: string[];
-    mediaUrl: string;
+    mediaUrls: string[];
     type: "photo" | "video";
   } | null>(null);
 
@@ -84,19 +104,30 @@ function CreatePageContent() {
         contentStyle: contentStyle
       });
       
-      const seed = Math.floor(Math.random() * 1000);
-      const mediaUrl = contentType === "video" 
-        ? `https://picsum.photos/seed/vid${seed}/1080/1920`
-        : `https://picsum.photos/seed/photo${seed}/1080/1350`; // 4:5 ratio for photos
+      const baseSeed = Math.floor(Math.random() * 10000);
+      let mediaUrls: string[] = [];
+
+      if (contentType === "video") {
+        mediaUrls = [`https://picsum.photos/seed/vid${baseSeed}/1080/1920`];
+      } else {
+        // Generate 5 cohesive images with slightly different seeds
+        mediaUrls = Array.from({ length: 5 }).map((_, i) => 
+          `https://picsum.photos/seed/photo${baseSeed + i}/1080/1350`
+        );
+      }
 
       setGeneratedResult({
         caption: result.caption,
         hashtags: result.hashtags,
-        mediaUrl: mediaUrl,
+        mediaUrls: mediaUrls,
         type: contentType
       });
       
-      toast({ title: `${contentType === 'photo' ? 'Photo' : 'Video'} generated successfully!` });
+      toast({ 
+        title: contentType === 'photo' 
+          ? 'Cohesive photo set generated!' 
+          : 'Video generated successfully!' 
+      });
     } catch (e) {
       toast({ title: "Failed to generate content." });
     } finally {
@@ -247,14 +278,14 @@ function CreatePageContent() {
                           className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
                         >
                           <ImageIcon className="mb-3 h-6 w-6" />
-                          Photo
+                          Photo Set
                         </Label>
                       </div>
                     </RadioGroup>
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Choose Style</Label>
+                    <Label>{contentType === 'photo' ? 'Collection Style' : 'Video Style'}</Label>
                     <Select value={contentStyle} onValueChange={setContentStyle}>
                       <SelectTrigger className="bg-black border-white/10">
                         <SelectValue placeholder="Select style" />
@@ -269,10 +300,10 @@ function CreatePageContent() {
                           </>
                         ) : (
                           <>
-                            <SelectItem value="portrait">Studio Portrait</SelectItem>
+                            <SelectItem value="portrait">Studio Portrait Set</SelectItem>
                             <SelectItem value="editorial">High Fashion Editorial</SelectItem>
-                            <SelectItem value="street">Street Photography</SelectItem>
-                            <SelectItem value="lifestyle">Candid Lifestyle</SelectItem>
+                            <SelectItem value="street">Street Photography Series</SelectItem>
+                            <SelectItem value="lifestyle">Candid Lifestyle Story</SelectItem>
                           </>
                         )}
                       </SelectContent>
@@ -287,7 +318,7 @@ function CreatePageContent() {
                     {isGenerating ? (
                       <>
                         <Loader2 className="w-6 h-6 animate-spin mr-2" />
-                        Rendering AI {contentType}...
+                        Rendering AI {contentType === 'photo' ? 'Photos' : 'Video'}...
                       </>
                     ) : (
                       <>
@@ -300,24 +331,55 @@ function CreatePageContent() {
               </Card>
             ) : (
               <div className="space-y-6">
-                <div className={`relative ${generatedResult.type === 'video' ? 'aspect-[9/16]' : 'aspect-[4/5]'} w-full max-w-sm mx-auto rounded-2xl overflow-hidden border-4 border-primary shadow-2xl shadow-primary/20`}>
-                  <Image 
-                    src={generatedResult.mediaUrl} 
-                    alt="Generated Media Preview" 
-                    fill 
-                    className="object-cover"
-                  />
-                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                    <div className="bg-white/20 backdrop-blur-md p-4 rounded-full">
-                      <CheckCircle2 className="w-12 h-12 text-white" />
+                <div className={`relative ${generatedResult.type === 'video' ? 'aspect-[9/16]' : 'aspect-[4/5]'} w-full max-w-sm mx-auto`}>
+                  {generatedResult.type === 'video' ? (
+                    <div className="relative w-full h-full rounded-2xl overflow-hidden border-4 border-primary shadow-2xl shadow-primary/20">
+                      <Image 
+                        src={generatedResult.mediaUrls[0]} 
+                        alt="Generated Video Preview" 
+                        fill 
+                        className="object-cover"
+                      />
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                         <VideoIcon className="w-12 h-12 text-white opacity-50" />
+                      </div>
                     </div>
+                  ) : (
+                    <Carousel className="w-full">
+                      <CarouselContent>
+                        {generatedResult.mediaUrls.map((url, index) => (
+                          <CarouselItem key={index}>
+                            <div className="relative aspect-[4/5] rounded-2xl overflow-hidden border-4 border-primary shadow-2xl shadow-primary/20">
+                              <Image 
+                                src={url} 
+                                alt={`Generated Photo ${index + 1}`} 
+                                fill 
+                                className="object-cover"
+                                data-ai-hint="fashion portrait"
+                              />
+                              <div className="absolute top-4 right-4 bg-primary px-2 py-1 rounded text-[10px] font-bold">
+                                Image {index + 1}/5
+                              </div>
+                            </div>
+                          </CarouselItem>
+                        ))}
+                      </CarouselContent>
+                      <CarouselPrevious className="left-2 bg-black/50 border-none" />
+                      <CarouselNext className="right-2 bg-black/50 border-none" />
+                    </Carousel>
+                  )}
+                  
+                  <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-white/20 backdrop-blur-md p-3 rounded-full border border-white/20">
+                    <CheckCircle2 className="w-6 h-6 text-white" />
                   </div>
                 </div>
 
                 <Card className="bg-zinc-900 border-white/5">
                   <CardContent className="pt-6 space-y-4">
                     <div className="space-y-2">
-                      <Label className="text-muted-foreground uppercase text-[10px] tracking-widest font-bold">Caption Preview</Label>
+                      <Label className="text-muted-foreground uppercase text-[10px] tracking-widest font-bold">
+                        {generatedResult.type === 'photo' ? 'Collection Caption' : 'Caption Preview'}
+                      </Label>
                       <p className="text-sm italic p-3 bg-black rounded-md border border-white/5">{generatedResult.caption}</p>
                       <div className="flex flex-wrap gap-2 pt-2">
                         {generatedResult.hashtags.map(h => <span key={h} className="text-xs text-accent">{h}</span>)}
@@ -331,7 +393,7 @@ function CreatePageContent() {
                       </Button>
                       <Button variant="outline" className="border-white/10 bg-black">
                         <Download className="w-4 h-4 mr-2" />
-                        Download
+                        Save Set
                       </Button>
                     </div>
 
@@ -340,7 +402,7 @@ function CreatePageContent() {
                       toast({ title: "Post saved to your feed!" });
                     }}>
                       <Save className="w-4 h-4 mr-2" />
-                      Save to Profile
+                      Post to Profile
                     </Button>
                   </CardContent>
                 </Card>
