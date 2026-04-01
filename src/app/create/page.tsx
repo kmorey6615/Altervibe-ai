@@ -137,7 +137,8 @@ function CreatePageContent() {
       let mediaUrls: string[] = [];
 
       if (contentType === "video") {
-        mediaUrls = [`https://picsum.photos/seed/vid${baseSeed}/1080/1920`];
+        // Using a working sample video for the preview
+        mediaUrls = ["https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"];
       } else {
         mediaUrls = Array.from({ length: 5 }).map((_, i) => 
           `https://picsum.photos/seed/set${baseSeed}-${i}/1080/1350`
@@ -405,19 +406,15 @@ function CreatePageContent() {
               <div className="space-y-6 animate-in zoom-in-95 duration-500">
                 <div className={`relative ${generatedResult.type === 'video' ? 'aspect-[9/16]' : 'aspect-[4/5]'} w-full max-w-sm mx-auto`}>
                   {generatedResult.type === 'video' ? (
-                    <div className="relative w-full h-full rounded-2xl overflow-hidden border-4 border-primary shadow-2xl shadow-primary/20">
-                      <Image 
+                    <div className="relative w-full h-full rounded-2xl overflow-hidden border-4 border-primary shadow-2xl shadow-primary/20 bg-zinc-950">
+                      <video 
                         src={generatedResult.mediaUrls[0]} 
-                        alt="Generated Video Preview" 
-                        fill 
-                        className="object-cover"
+                        controls 
+                        autoPlay 
+                        loop 
+                        className="w-full h-full object-cover"
                       />
-                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                         <div className="p-4 rounded-full bg-white/20 backdrop-blur-md">
-                           <VideoIcon className="w-10 h-10 text-white" />
-                         </div>
-                      </div>
-                      <div className="absolute bottom-4 left-4 right-4 space-y-2">
+                      <div className="absolute bottom-4 left-4 right-4 space-y-2 pointer-events-none">
                         <div className="flex items-center gap-2">
                           <Music className="w-4 h-4 text-white animate-spin-slow" />
                           <span className="text-[10px] font-bold text-white uppercase tracking-tighter">Viral Audio Attached</span>
