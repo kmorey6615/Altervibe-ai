@@ -1,0 +1,29 @@
+
+{
+  "placeholderImages": [
+    {
+      "id": "char-1",
+      "description": "Futuristic AI Pop Star",
+      "imageUrl": "https://picsum.photos/seed/char1/400/600",
+      "imageHint": "futuristic cyberpunk"
+    },
+    {
+      "id": "char-2",
+      "description": "Vintage Fashion Influencer",
+      "imageUrl": "https://picsum.photos/seed/char2/400/600",
+      "imageHint": "vintage fashion"
+    },
+    {
+      "id": "video-1",
+      "description": "Viral Dance Placeholder",
+      "imageUrl": "https://picsum.photos/seed/vid1/1080/1920",
+      "imageHint": "dance neon"
+    },
+    {
+      "id": "video-2",
+      "description": "Aesthetic POV Placeholder",
+      "imageUrl": "https://picsum.photos/seed/vid2/1080/1920",
+      "imageHint": "aesthetic city"
+    }
+  ]
+}
