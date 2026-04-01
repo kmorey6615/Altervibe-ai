@@ -6,7 +6,7 @@
   :root {
     --background: 0 0% 0%;
     --foreground: 0 0% 100%;
-    --card: 0 0% 10%;
+    --card: 0 0% 7%;
     --card-foreground: 0 0% 100%;
     --popover: 0 0% 10%;
     --popover-foreground: 0 0% 100%;
@@ -20,10 +20,10 @@
     --accent-foreground: 0 0% 0%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 20%;
-    --input: 0 0% 20%;
+    --border: 0 0% 15%;
+    --input: 0 0% 15%;
     --ring: 271 76% 53%;
-    --radius: 0.75rem;
+    --radius: 1rem;
   }
 }
 
@@ -41,10 +41,9 @@
 .tiktok-feed {
   scroll-snap-type: y mandatory;
   overflow-y: scroll;
-  height: calc(100dvh - 64px); /* Subtract nav height */
+  height: calc(100dvh - 64px);
   scrollbar-width: none;
   -ms-overflow-style: none;
-  padding-bottom: 80px;
 }
 
 .tiktok-feed::-webkit-scrollbar {
@@ -53,7 +52,7 @@
 
 .tiktok-item {
   scroll-snap-align: center;
-  height: calc(100dvh - 80px);
+  height: calc(100dvh - 64px);
   width: 100%;
   display: flex;
   align-items: center;

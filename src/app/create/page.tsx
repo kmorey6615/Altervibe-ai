@@ -17,7 +17,6 @@ import {
   Wand2, 
   Copy, 
   Download, 
-  Save, 
   CheckCircle2, 
   Activity, 
   Sparkles, 
@@ -26,7 +25,8 @@ import {
   Zap,
   RefreshCcw,
   Music,
-  Hash
+  Hash,
+  Save
 } from "lucide-react";
 import { generateAICharacterPersonality } from "@/ai/flows/generate-ai-character-personality";
 import { generateSocialMediaCaption } from "@/ai/flows/generate-social-media-caption";
@@ -69,15 +69,12 @@ function CreatePageContent() {
   const [contentStyle, setContentStyle] = useState("viral dance");
   const [userPrompt, setUserPrompt] = useState("");
 
-  // Handle URL search params for "Use This Trend"
   useEffect(() => {
     const styleParam = searchParams.get("style");
     if (styleParam) {
       setContentStyle(styleParam);
-      // Auto-unlock if navigating from a trend, though usually needs a saved char
-      if (charSaved) setStep("studio");
     }
-  }, [searchParams, charSaved]);
+  }, [searchParams]);
 
   const handleGeneratePersonality = async () => {
     if (!charData.name || !charData.style) {
@@ -115,7 +112,6 @@ function CreatePageContent() {
       title: "Influencer Saved!",
       description: `${charData.name} is now in your roster.`
     });
-    // Automatic switch to Studio after save
     setTimeout(() => setStep("studio"), 800);
   };
 
@@ -143,7 +139,6 @@ function CreatePageContent() {
       if (contentType === "video") {
         mediaUrls = [`https://picsum.photos/seed/vid${baseSeed}/1080/1920`];
       } else {
-        // Generate 5 cohesive images for a photo set
         mediaUrls = Array.from({ length: 5 }).map((_, i) => 
           `https://picsum.photos/seed/set${baseSeed}-${i}/1080/1350`
         );
