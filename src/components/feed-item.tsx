@@ -27,49 +27,51 @@ export function FeedItem({ video }: FeedItemProps) {
   };
 
   return (
-    <div className="tiktok-item bg-black flex flex-col justify-end">
-      {/* Video Content Placeholder */}
-      <div className="absolute inset-0 z-0">
-        <Image
-          src={video.videoUrl}
-          alt="Video content"
-          fill
-          className="object-cover"
-          priority
-          data-ai-hint="vertical video"
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/95" />
-      </div>
-
-      {/* Sidebar Actions */}
-      <div className="absolute right-4 bottom-32 flex flex-col gap-6 z-10">
-        <div className="flex flex-col items-center group cursor-pointer">
-          <div className="w-12 h-12 bg-white/10 backdrop-blur-xl rounded-full flex items-center justify-center border border-white/20 group-hover:bg-primary transition-all shadow-xl">
-            <Heart className="w-6 h-6 text-white" />
-          </div>
-          <span className="text-[10px] font-bold text-white mt-1 drop-shadow-lg">{video.likes}</span>
-        </div>
+    <div className="tiktok-item bg-black">
+      {/* Phone-sized Container */}
+      <div className="relative aspect-[9/16] h-full max-h-[800px] w-full max-w-[450px] bg-zinc-900 rounded-[2.5rem] overflow-hidden border-[8px] border-zinc-800 shadow-2xl flex flex-col justify-end">
         
-        <div className="flex flex-col items-center group cursor-pointer">
-          <div className="w-12 h-12 bg-white/10 backdrop-blur-xl rounded-full flex items-center justify-center border border-white/20 group-hover:bg-white/20 transition-all shadow-xl">
-            <MessageCircle className="w-6 h-6 text-white" />
-          </div>
-          <span className="text-[10px] font-bold text-white mt-1 drop-shadow-lg">{video.comments}</span>
+        {/* Video Content Placeholder */}
+        <div className="absolute inset-0 z-0">
+          <Image
+            src={video.videoUrl}
+            alt="Video content"
+            fill
+            className="object-cover"
+            priority
+            data-ai-hint="vertical video"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/90" />
         </div>
 
-        <div className="flex flex-col items-center group cursor-pointer">
-          <div className="w-12 h-12 bg-white/10 backdrop-blur-xl rounded-full flex items-center justify-center border border-white/20 group-hover:bg-white/20 transition-all shadow-xl">
-            <Share2 className="w-6 h-6 text-white" />
+        {/* Sidebar Actions */}
+        <div className="absolute right-4 bottom-32 flex flex-col gap-5 z-10">
+          <div className="flex flex-col items-center group cursor-pointer">
+            <div className="w-10 h-10 bg-white/10 backdrop-blur-xl rounded-full flex items-center justify-center border border-white/20 group-hover:bg-primary transition-all shadow-xl">
+              <Heart className="w-5 h-5 text-white" />
+            </div>
+            <span className="text-[10px] font-bold text-white mt-1 drop-shadow-lg">{video.likes}</span>
           </div>
-          <span className="text-[10px] font-bold text-white mt-1 drop-shadow-lg">{video.shares}</span>
-        </div>
-      </div>
+          
+          <div className="flex flex-col items-center group cursor-pointer">
+            <div className="w-10 h-10 bg-white/10 backdrop-blur-xl rounded-full flex items-center justify-center border border-white/20 group-hover:bg-white/20 transition-all shadow-xl">
+              <MessageCircle className="w-5 h-5 text-white" />
+            </div>
+            <span className="text-[10px] font-bold text-white mt-1 drop-shadow-lg">{video.comments}</span>
+          </div>
 
-      {/* Bottom Info Area */}
-      <div className="p-6 pb-28 relative z-10 w-full">
-        <div className="max-w-md space-y-3">
+          <div className="flex flex-col items-center group cursor-pointer">
+            <div className="w-10 h-10 bg-white/10 backdrop-blur-xl rounded-full flex items-center justify-center border border-white/20 group-hover:bg-white/20 transition-all shadow-xl">
+              <Share2 className="w-5 h-5 text-white" />
+            </div>
+            <span className="text-[10px] font-bold text-white mt-1 drop-shadow-lg">{video.shares}</span>
+          </div>
+        </div>
+
+        {/* Bottom Info Area */}
+        <div className="p-6 relative z-10 w-full space-y-3">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-full border-2 border-primary bg-zinc-800 flex items-center justify-center font-bold text-xs overflow-hidden relative shadow-lg shadow-primary/20">
+            <div className="w-10 h-10 rounded-full border-2 border-primary bg-zinc-800 flex items-center justify-center overflow-hidden relative shadow-lg">
                <Image 
                 src={`https://picsum.photos/seed/${video.userName}/100/100`}
                 alt={video.userName}
@@ -78,41 +80,31 @@ export function FeedItem({ video }: FeedItemProps) {
               />
             </div>
             <div className="flex flex-col">
-              <h3 className="font-bold text-base flex items-center gap-2 drop-shadow-xl text-white">
+              <h3 className="font-bold text-sm flex items-center gap-2 text-white">
                 @{video.userName}
-                <span className="bg-primary px-1.5 py-0.5 rounded text-[8px] uppercase tracking-tighter font-black shadow-sm">Verified AI</span>
+                <span className="bg-primary px-1 py-0.5 rounded text-[7px] uppercase tracking-tighter font-black">AI</span>
               </h3>
-              <p className="text-[10px] text-primary-foreground/80 font-bold uppercase tracking-widest">{video.contentStyle || "Trending"}</p>
+              <p className="text-[9px] text-primary/90 font-bold uppercase tracking-widest">{video.contentStyle || "Trending"}</p>
             </div>
           </div>
           
-          <p className="text-sm text-white/95 line-clamp-2 leading-relaxed font-semibold drop-shadow-lg">
+          <p className="text-xs text-white/95 line-clamp-2 leading-tight font-medium drop-shadow-lg">
             {video.caption}
           </p>
           
-          <div className="flex flex-wrap gap-2">
-            {video.hashtags.map((tag) => (
-              <span key={tag} className="text-xs font-bold text-accent drop-shadow-lg hover:scale-105 transition-transform cursor-pointer">
-                {tag}
-              </span>
-            ))}
-          </div>
-
-          <div className="flex items-center justify-between pt-4">
-            <div className="flex items-center gap-2 text-[11px] text-white/70 overflow-hidden max-w-[160px] bg-black/40 backdrop-blur-md py-1 px-3 rounded-full border border-white/10">
+          <div className="flex items-center justify-between pt-2">
+            <div className="flex items-center gap-2 text-[10px] text-white/70 bg-black/40 backdrop-blur-md py-1 px-3 rounded-full border border-white/10 max-w-[140px]">
               <Music className="w-3 h-3 animate-spin-slow text-primary" />
-              <div className="whitespace-nowrap italic truncate font-medium">
-                Original Sound - {video.userName}
-              </div>
+              <div className="truncate italic font-medium">Original Sound</div>
             </div>
 
             <Button 
               onClick={handleUseTrend}
               size="sm" 
-              className="bg-white text-black hover:bg-primary hover:text-white font-black text-[10px] uppercase h-9 px-5 rounded-full shadow-2xl transition-all active:scale-95 group"
+              className="bg-white text-black hover:bg-primary hover:text-white font-black text-[9px] uppercase h-8 px-4 rounded-full transition-all active:scale-95"
             >
-              <Sparkles className="w-3.5 h-3.5 mr-2 group-hover:rotate-12 transition-transform" />
-              Use This Trend
+              <Sparkles className="w-3 h-3 mr-1.5" />
+              Use Trend
             </Button>
           </div>
         </div>

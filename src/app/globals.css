@@ -41,9 +41,10 @@
 .tiktok-feed {
   scroll-snap-type: y mandatory;
   overflow-y: scroll;
-  height: 100dvh;
+  height: calc(100dvh - 64px); /* Subtract nav height */
   scrollbar-width: none;
   -ms-overflow-style: none;
+  padding-bottom: 80px;
 }
 
 .tiktok-feed::-webkit-scrollbar {
@@ -51,11 +52,13 @@
 }
 
 .tiktok-item {
-  scroll-snap-align: start;
-  height: 100dvh;
+  scroll-snap-align: center;
+  height: calc(100dvh - 80px);
   width: 100%;
-  position: relative;
-  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
 }
 
 /* Animations */
@@ -65,14 +68,6 @@
 }
 .animate-spin-slow {
   animation: spin-slow 3s linear infinite;
-}
-
-@keyframes pulse-soft {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
-}
-.animate-pulse-soft {
-  animation: pulse-soft 2s ease-in-out infinite;
 }
 
 /* Text Shadows for Video Readability */

@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
@@ -224,7 +223,7 @@ function CreatePageContent() {
                     disabled={isGenerating || !charData.name || !charData.style}
                   >
                     {isGenerating ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Wand2 className="w-4 h-4 mr-2" />}
-                    Generate AI character
+                    Generate AI Character
                   </Button>
                 </CardContent>
               </Card>
