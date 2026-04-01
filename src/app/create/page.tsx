@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { Navigation } from "@/components/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,13 +11,14 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Wand2, Copy, Download, Save, CheckCircle2, Activity } from "lucide-react";
+import { Loader2, Wand2, Copy, Download, Save, CheckCircle2, Activity, Sparkles } from "lucide-react";
 import { generateAICharacterPersonality } from "@/ai/flows/generate-ai-character-personality";
 import { generateSocialMediaCaption } from "@/ai/flows/generate-social-media-caption";
 import Image from "next/image";
 
-export default function CreatePage() {
+function CreatePageContent() {
   const { toast } = useToast();
+  const searchParams = useSearchParams();
   const [step, setStep] = useState<"character" | "studio">("character");
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedResult, setGeneratedResult] = useState<{
@@ -35,6 +37,20 @@ export default function CreatePage() {
 
   // Studio State
   const [contentStyle, setContentStyle] = useState("viral dance");
+
+  // Handle URL search params for "Use This Trend"
+  useEffect(() => {
+    const styleParam = searchParams.get("style");
+    if (styleParam) {
+      setContentStyle(styleParam);
+      // If we have a style from a trend, maybe we should jump to step 2 if they have a character?
+      // For now, let's just pre-select the style.
+      toast({
+        title: "Trend Applied!",
+        description: `Now using the ${styleParam} style.`,
+      });
+    }
+  }, [searchParams, toast]);
 
   const handleGeneratePersonality = async () => {
     if (!charData.name || !charData.style) {
@@ -182,13 +198,16 @@ export default function CreatePage() {
             {!generatedResult ? (
               <Card className="bg-zinc-900 border-white/5">
                 <CardHeader>
-                  <CardTitle>Content Studio</CardTitle>
+                  <CardTitle className="flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-accent" />
+                    Content Studio
+                  </CardTitle>
                   <CardDescription>Select a vibe for your next viral post.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="p-4 rounded-lg bg-black border border-white/10 flex items-center gap-4">
                     <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center font-bold text-xl">
-                      {charData.name[0]}
+                      {charData.name?.[0] || "?"}
                     </div>
                     <div>
                       <p className="font-bold">{charData.name}</p>
@@ -232,7 +251,7 @@ export default function CreatePage() {
               </Card>
             ) : (
               <div className="space-y-6">
-                <div className="relative aspect-[9/16] w-full max-w-sm mx-auto rounded-2xl overflow-hidden border-4 border-primary">
+                <div className="relative aspect-[9/16] w-full max-w-sm mx-auto rounded-2xl overflow-hidden border-4 border-primary shadow-2xl shadow-primary/20">
                   <Image 
                     src={generatedResult.videoUrl} 
                     alt="Generated Video Preview" 
@@ -283,5 +302,13 @@ export default function CreatePage() {
       </div>
       <Navigation />
     </main>
+  );
+}
+
+export default function CreatePage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-black flex items-center justify-center text-primary font-bold italic animate-pulse">Loading Studio...</div>}>
+      <CreatePageContent />
+    </Suspense>
   );
 }
