@@ -43,12 +43,9 @@ function CreatePageContent() {
     const styleParam = searchParams.get("style");
     if (styleParam) {
       setContentStyle(styleParam);
-      toast({
-        title: "Trend Applied!",
-        description: `Now using the ${styleParam} style.`,
-      });
+      // We don't toast here to avoid cluttering the UI on mount
     }
-  }, [searchParams, toast]);
+  }, [searchParams]);
 
   const handleGeneratePersonality = async () => {
     if (!charData.name || !charData.style) {
@@ -146,7 +143,7 @@ function CreatePageContent() {
                     min={18} 
                     className="bg-black border-white/10"
                     value={charData.age}
-                    onChange={(e) => setCharData({...charData, age: parseInt(e.target.value)})}
+                    onChange={(e) => setCharData({...charData, age: parseInt(e.target.value) || 18})}
                   />
                 </div>
                 <div className="space-y-2">
