@@ -69,8 +69,14 @@ export function FeedItem({ video }: FeedItemProps) {
       <div className="p-6 pb-28 relative z-10 w-full bg-gradient-to-t from-black/80 to-transparent">
         <div className="max-w-md space-y-3">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full border-2 border-primary bg-zinc-800 flex items-center justify-center font-bold text-xs">
-              {video.userName[0].toUpperCase()}
+            <div className="w-10 h-10 rounded-full border-2 border-primary bg-zinc-800 flex items-center justify-center font-bold text-xs overflow-hidden">
+               <Image 
+                src={`https://picsum.photos/seed/${video.userName}/100/100`}
+                alt={video.userName}
+                width={40}
+                height={40}
+                className="object-cover"
+              />
             </div>
             <h3 className="font-bold text-base flex items-center gap-2">
               @{video.userName}
@@ -101,7 +107,7 @@ export function FeedItem({ video }: FeedItemProps) {
             <Button 
               onClick={handleUseTrend}
               size="sm" 
-              className="bg-white text-black hover:bg-primary hover:text-white font-black text-[10px] uppercase h-8 px-4 rounded-full"
+              className="bg-white text-black hover:bg-primary hover:text-white font-black text-[10px] uppercase h-8 px-4 rounded-full shadow-lg shadow-white/10"
             >
               <Sparkles className="w-3 h-3 mr-1.5" />
               Use This Trend

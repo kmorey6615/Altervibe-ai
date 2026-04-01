@@ -43,8 +43,6 @@ function CreatePageContent() {
     const styleParam = searchParams.get("style");
     if (styleParam) {
       setContentStyle(styleParam);
-      // If we have a style from a trend, maybe we should jump to step 2 if they have a character?
-      // For now, let's just pre-select the style.
       toast({
         title: "Trend Applied!",
         description: `Now using the ${styleParam} style.`,
