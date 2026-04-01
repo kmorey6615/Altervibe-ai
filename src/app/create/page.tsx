@@ -74,9 +74,10 @@ function CreatePageContent() {
     const styleParam = searchParams.get("style");
     if (styleParam) {
       setContentStyle(styleParam);
-      setStep("studio");
+      // Auto-unlock if navigating from a trend, though usually needs a saved char
+      if (charSaved) setStep("studio");
     }
-  }, [searchParams]);
+  }, [searchParams, charSaved]);
 
   const handleGeneratePersonality = async () => {
     if (!charData.name || !charData.style) {
@@ -142,8 +143,9 @@ function CreatePageContent() {
       if (contentType === "video") {
         mediaUrls = [`https://picsum.photos/seed/vid${baseSeed}/1080/1920`];
       } else {
+        // Generate 5 cohesive images for a photo set
         mediaUrls = Array.from({ length: 5 }).map((_, i) => 
-          `https://picsum.photos/seed/photo${baseSeed + i}/1080/1350`
+          `https://picsum.photos/seed/set${baseSeed}-${i}/1080/1350`
         );
       }
 
