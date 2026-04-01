@@ -21,7 +21,7 @@ function CreatePageContent() {
   const searchParams = useSearchParams();
   const [step, setStep] = useState<"character" | "studio">("character");
   const [isGenerating, setIsGenerating] = useState(false);
-  const [generatedResult, setGeneratedResult] = useState<{
+  const [generatedResult, setGeneratedResult] = setGeneratedResult = useState<{
     caption: string;
     hashtags: string[];
     videoUrl: string;
