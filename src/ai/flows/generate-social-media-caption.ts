@@ -1,6 +1,6 @@
 'use server';
 /**
- * @fileOverview A Genkit flow for generating engaging social media captions.
+ * @fileOverview A Genkit flow for generating engaging social media captions for photo or video content.
  *
  * - generateSocialMediaCaption - A function that handles the caption generation process.
  * - GenerateSocialMediaCaptionInput - The input type for the generateSocialMediaCaption function.
@@ -15,13 +15,14 @@ const GenerateSocialMediaCaptionInputSchema = z.object({
   characterAge: z.number().int().min(18).describe("The age of the AI character (18 or older)."),
   characterStyle: z.string().describe("The visual style or aesthetic of the AI character."),
   characterPersonality: z.string().describe("The personality traits of the AI character."),
-  contentStyle: z.string().describe("The chosen content style for the video (e.g., viral dance, aesthetic, POV, lip sync)."),
+  contentType: z.enum(['photo', 'video']).describe("Whether the content is a photo or a video."),
+  contentStyle: z.string().describe("The chosen content style (e.g., viral dance, aesthetic, editorial, portrait)."),
 });
 export type GenerateSocialMediaCaptionInput = z.infer<typeof GenerateSocialMediaCaptionInputSchema>;
 
 const GenerateSocialMediaCaptionOutputSchema = z.object({
-  caption: z.string().describe("An engaging social media caption for the video."),
-  hashtags: z.array(z.string()).describe("A list of relevant hashtags for the post."),
+  caption: z.string().describe("An engaging social media caption for the post."),
+  hashtags: z.array(z.string()).describe("A list of relevant hashtags."),
 });
 export type GenerateSocialMediaCaptionOutput = z.infer<typeof GenerateSocialMediaCaptionOutputSchema>;
 
@@ -33,19 +34,16 @@ const prompt = ai.definePrompt({
   name: 'generateSocialMediaCaptionPrompt',
   input: { schema: GenerateSocialMediaCaptionInputSchema },
   output: { schema: GenerateSocialMediaCaptionOutputSchema },
-  prompt: `You are an expert social media caption writer for AI-generated influencers. Your task is to create a contextual and engaging caption for a short-form video.
+  prompt: `You are an expert social media manager for AI influencers. Your task is to create a contextual caption for a {{{contentType}}} post.
 
-Here are the details about the AI character and the content style:
+Details:
+Character: {{{characterName}}} (Age: {{{characterAge}}})
+Style: {{{characterStyle}}}
+Personality: {{{characterPersonality}}}
+Content Type: {{{contentType}}}
+Vibe/Action: {{{contentStyle}}}
 
-Character Name: {{{characterName}}}
-Character Age: {{{characterAge}}}
-Character Style: {{{characterStyle}}}
-Character Personality: {{{characterPersonality}}}
-Content Style: {{{contentStyle}}}
-
-Craft a caption that is fitting for this character and content style, suitable for platforms like TikTok or Instagram. Include relevant and trending hashtags.
-
-Make sure the output is a JSON object with 'caption' and 'hashtags' fields.`,
+Craft a caption that feels authentic to this character's voice. If it's a photo, make it sound like a snapshot moment. If it's a video, make it sound like a dynamic update. Include trending hashtags.`,
 });
 
 const generateSocialMediaCaptionFlow = ai.defineFlow(

@@ -10,8 +10,9 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Wand2, Copy, Download, Save, CheckCircle2, Activity, Sparkles } from "lucide-react";
+import { Loader2, Wand2, Copy, Download, Save, CheckCircle2, Activity, Sparkles, Image as ImageIcon, Video as VideoIcon } from "lucide-react";
 import { generateAICharacterPersonality } from "@/ai/flows/generate-ai-character-personality";
 import { generateSocialMediaCaption } from "@/ai/flows/generate-social-media-caption";
 import Image from "next/image";
@@ -24,7 +25,8 @@ function CreatePageContent() {
   const [generatedResult, setGeneratedResult] = useState<{
     caption: string;
     hashtags: string[];
-    videoUrl: string;
+    mediaUrl: string;
+    type: "photo" | "video";
   } | null>(null);
 
   // Character State
@@ -36,6 +38,7 @@ function CreatePageContent() {
   });
 
   // Studio State
+  const [contentType, setContentType] = useState<"video" | "photo">("video");
   const [contentStyle, setContentStyle] = useState("viral dance");
 
   // Handle URL search params for "Use This Trend"
@@ -65,7 +68,7 @@ function CreatePageContent() {
     }
   };
 
-  const handleGenerateVideo = async () => {
+  const handleGenerateContent = async () => {
     if (!charData.name || !charData.personality) {
       toast({ title: "Complete character creation first." });
       return;
@@ -77,18 +80,25 @@ function CreatePageContent() {
         characterAge: charData.age,
         characterStyle: charData.style,
         characterPersonality: charData.personality,
+        contentType: contentType,
         contentStyle: contentStyle
       });
       
+      const seed = Math.floor(Math.random() * 1000);
+      const mediaUrl = contentType === "video" 
+        ? `https://picsum.photos/seed/vid${seed}/1080/1920`
+        : `https://picsum.photos/seed/photo${seed}/1080/1350`; // 4:5 ratio for photos
+
       setGeneratedResult({
         caption: result.caption,
         hashtags: result.hashtags,
-        videoUrl: "https://picsum.photos/seed/studio/1080/1920"
+        mediaUrl: mediaUrl,
+        type: contentType
       });
       
-      toast({ title: "Video generated successfully!" });
+      toast({ title: `${contentType === 'photo' ? 'Photo' : 'Video'} generated successfully!` });
     } catch (e) {
-      toast({ title: "Failed to generate video." });
+      toast({ title: "Failed to generate content." });
     } finally {
       setIsGenerating(false);
     }
@@ -209,6 +219,40 @@ function CreatePageContent() {
                     </div>
                   </div>
 
+                  <div className="space-y-3">
+                    <Label>Content Type</Label>
+                    <RadioGroup 
+                      value={contentType} 
+                      onValueChange={(v) => {
+                        setContentType(v as any);
+                        if (v === "photo") setContentStyle("portrait");
+                        else setContentStyle("viral dance");
+                      }}
+                      className="grid grid-cols-2 gap-4"
+                    >
+                      <div>
+                        <RadioGroupItem value="video" id="video" className="peer sr-only" />
+                        <Label
+                          htmlFor="video"
+                          className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+                        >
+                          <VideoIcon className="mb-3 h-6 w-6" />
+                          Video
+                        </Label>
+                      </div>
+                      <div>
+                        <RadioGroupItem value="photo" id="photo" className="peer sr-only" />
+                        <Label
+                          htmlFor="photo"
+                          className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+                        >
+                          <ImageIcon className="mb-3 h-6 w-6" />
+                          Photo
+                        </Label>
+                      </div>
+                    </RadioGroup>
+                  </div>
+
                   <div className="space-y-2">
                     <Label>Choose Style</Label>
                     <Select value={contentStyle} onValueChange={setContentStyle}>
@@ -216,23 +260,34 @@ function CreatePageContent() {
                         <SelectValue placeholder="Select style" />
                       </SelectTrigger>
                       <SelectContent className="bg-zinc-900 border-white/10">
-                        <SelectItem value="viral dance">Viral Dance</SelectItem>
-                        <SelectItem value="aesthetic">Aesthetic B-Roll</SelectItem>
-                        <SelectItem value="POV">POV / Storytime</SelectItem>
-                        <SelectItem value="lip sync">Lip Sync</SelectItem>
+                        {contentType === "video" ? (
+                          <>
+                            <SelectItem value="viral dance">Viral Dance</SelectItem>
+                            <SelectItem value="aesthetic">Aesthetic B-Roll</SelectItem>
+                            <SelectItem value="POV">POV / Storytime</SelectItem>
+                            <SelectItem value="lip sync">Lip Sync</SelectItem>
+                          </>
+                        ) : (
+                          <>
+                            <SelectItem value="portrait">Studio Portrait</SelectItem>
+                            <SelectItem value="editorial">High Fashion Editorial</SelectItem>
+                            <SelectItem value="street">Street Photography</SelectItem>
+                            <SelectItem value="lifestyle">Candid Lifestyle</SelectItem>
+                          </>
+                        )}
                       </SelectContent>
                     </Select>
                   </div>
 
                   <Button 
                     className="w-full bg-accent text-black hover:bg-accent/80 font-black h-12 text-lg"
-                    onClick={handleGenerateVideo}
+                    onClick={handleGenerateContent}
                     disabled={isGenerating}
                   >
                     {isGenerating ? (
                       <>
                         <Loader2 className="w-6 h-6 animate-spin mr-2" />
-                        Rendering AI Video...
+                        Rendering AI {contentType}...
                       </>
                     ) : (
                       <>
@@ -245,10 +300,10 @@ function CreatePageContent() {
               </Card>
             ) : (
               <div className="space-y-6">
-                <div className="relative aspect-[9/16] w-full max-w-sm mx-auto rounded-2xl overflow-hidden border-4 border-primary shadow-2xl shadow-primary/20">
+                <div className={`relative ${generatedResult.type === 'video' ? 'aspect-[9/16]' : 'aspect-[4/5]'} w-full max-w-sm mx-auto rounded-2xl overflow-hidden border-4 border-primary shadow-2xl shadow-primary/20`}>
                   <Image 
-                    src={generatedResult.videoUrl} 
-                    alt="Generated Video Preview" 
+                    src={generatedResult.mediaUrl} 
+                    alt="Generated Media Preview" 
                     fill 
                     className="object-cover"
                   />
