@@ -50,13 +50,7 @@ function CreatePageContent() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [charRevealed, setCharRevealed] = useState(false);
   const [charSaved, setCharSaved] = useState(false);
-  const [generatedResult, setGeneratedResult] = useState<{
-    caption: string;
-    hashtags: string[];
-    mediaUrls: string[];
-    type: "photo" | "video";
-  } | null>(null);
-
+  
   // Character State
   const [charData, setCharData] = useState({
     name: "",
@@ -65,6 +59,14 @@ function CreatePageContent() {
     personality: "",
     imageUrl: ""
   });
+
+  // Result State - Fixed the syntax error here
+  const [generatedResult, setGeneratedResult] = useState<{
+    caption: string;
+    hashtags: string[];
+    mediaUrls: string[];
+    type: "photo" | "video";
+  } | null>(null);
 
   // Studio State
   const [contentType, setContentType] = useState<"video" | "photo">("video");
@@ -76,7 +78,7 @@ function CreatePageContent() {
     const styleParam = searchParams.get("style");
     if (styleParam) {
       setContentStyle(styleParam);
-      setStep("studio"); // If coming from a trend, jump to studio
+      setStep("studio");
     }
   }, [searchParams]);
 
@@ -116,7 +118,7 @@ function CreatePageContent() {
       title: "Influencer Saved!",
       description: `${charData.name} is now in your roster.`
     });
-    // Jump to studio automatically
+    // Automatic switch to Studio after save
     setTimeout(() => setStep("studio"), 800);
   };
 
@@ -127,7 +129,6 @@ function CreatePageContent() {
     }
     setIsGenerating(true);
     try {
-      // Use the user's custom prompt if provided, otherwise the trend style
       const styleInput = userPrompt || contentStyle;
       
       const result = await generateSocialMediaCaption({
@@ -145,7 +146,6 @@ function CreatePageContent() {
       if (contentType === "video") {
         mediaUrls = [`https://picsum.photos/seed/vid${baseSeed}/1080/1920`];
       } else {
-        // Generate 5 cohesive images with slightly different seeds
         mediaUrls = Array.from({ length: 5 }).map((_, i) => 
           `https://picsum.photos/seed/photo${baseSeed + i}/1080/1350`
         );
@@ -190,7 +190,7 @@ function CreatePageContent() {
         <Tabs value={step} onValueChange={(v) => setStep(v as any)} className="w-full">
           <TabsList className="grid w-full grid-cols-2 bg-zinc-900 border border-white/5 h-12">
             <TabsTrigger value="character" className="data-[state=active]:bg-primary">1. Identity</TabsTrigger>
-            <TabsTrigger value="studio" className="data-[state=active]:bg-primary" disabled={!charSaved && !charRevealed}>2. Workshop</TabsTrigger>
+            <TabsTrigger value="studio" className="data-[state=active]:bg-primary" disabled={!charSaved}>2. Workshop</TabsTrigger>
           </TabsList>
 
           <TabsContent value="character" className="mt-6">
@@ -221,13 +221,14 @@ function CreatePageContent() {
                       onChange={(e) => setCharData({...charData, style: e.target.value})}
                     />
                   </div>
+                  {/* Renamed Button below */}
                   <Button 
                     className="w-full bg-primary hover:bg-primary/80 font-bold h-12"
                     onClick={handleGeneratePersonality}
                     disabled={isGenerating || !charData.name || !charData.style}
                   >
                     {isGenerating ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Wand2 className="w-4 h-4 mr-2" />}
-                    Initialize Influencer
+                    Generate AI character
                   </Button>
                 </CardContent>
               </Card>
@@ -392,7 +393,7 @@ function CreatePageContent() {
                   <Button 
                     className="w-full bg-accent text-black hover:bg-accent/80 font-black h-12 text-lg uppercase italic"
                     onClick={handleGenerateContent}
-                    disabled={isGenerating || (!charData.name && !charSaved)}
+                    disabled={isGenerating}
                   >
                     {isGenerating ? (
                       <>
