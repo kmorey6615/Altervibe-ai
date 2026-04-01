@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
@@ -23,12 +24,8 @@ import {
   Sparkles, 
   Image as ImageIcon, 
   Video as VideoIcon,
-  ChevronLeft,
-  ChevronRight,
-  User,
   Zap,
   RefreshCcw,
-  Heart,
   Music,
   Hash
 } from "lucide-react";
@@ -60,7 +57,7 @@ function CreatePageContent() {
     imageUrl: ""
   });
 
-  // Result State - Fixed the syntax error here
+  // Result State
   const [generatedResult, setGeneratedResult] = useState<{
     caption: string;
     hashtags: string[];
@@ -221,7 +218,6 @@ function CreatePageContent() {
                       onChange={(e) => setCharData({...charData, style: e.target.value})}
                     />
                   </div>
-                  {/* Renamed Button below */}
                   <Button 
                     className="w-full bg-primary hover:bg-primary/80 font-bold h-12"
                     onClick={handleGeneratePersonality}
