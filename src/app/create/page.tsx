@@ -28,7 +28,9 @@ import {
   User,
   Zap,
   RefreshCcw,
-  Heart
+  Heart,
+  Music,
+  Hash
 } from "lucide-react";
 import { generateAICharacterPersonality } from "@/ai/flows/generate-ai-character-personality";
 import { generateSocialMediaCaption } from "@/ai/flows/generate-social-media-caption";
@@ -67,12 +69,14 @@ function CreatePageContent() {
   // Studio State
   const [contentType, setContentType] = useState<"video" | "photo">("video");
   const [contentStyle, setContentStyle] = useState("viral dance");
+  const [userPrompt, setUserPrompt] = useState("");
 
   // Handle URL search params for "Use This Trend"
   useEffect(() => {
     const styleParam = searchParams.get("style");
     if (styleParam) {
       setContentStyle(styleParam);
+      setStep("studio"); // If coming from a trend, jump to studio
     }
   }, [searchParams]);
 
@@ -88,7 +92,6 @@ function CreatePageContent() {
         style: charData.style
       });
       
-      // Assign a consistent image seed for the character based on name
       const charSeed = charData.name.toLowerCase().replace(/\s/g, '');
       const imageUrl = `https://picsum.photos/seed/${charSeed}/600/800`;
       
@@ -113,6 +116,8 @@ function CreatePageContent() {
       title: "Influencer Saved!",
       description: `${charData.name} is now in your roster.`
     });
+    // Jump to studio automatically
+    setTimeout(() => setStep("studio"), 800);
   };
 
   const handleGenerateContent = async () => {
@@ -122,13 +127,16 @@ function CreatePageContent() {
     }
     setIsGenerating(true);
     try {
+      // Use the user's custom prompt if provided, otherwise the trend style
+      const styleInput = userPrompt || contentStyle;
+      
       const result = await generateSocialMediaCaption({
         characterName: charData.name,
         characterAge: charData.age,
         characterStyle: charData.style,
         characterPersonality: charData.personality,
         contentType: contentType,
-        contentStyle: contentStyle
+        contentStyle: styleInput
       });
       
       const baseSeed = Math.floor(Math.random() * 10000);
@@ -182,7 +190,7 @@ function CreatePageContent() {
         <Tabs value={step} onValueChange={(v) => setStep(v as any)} className="w-full">
           <TabsList className="grid w-full grid-cols-2 bg-zinc-900 border border-white/5 h-12">
             <TabsTrigger value="character" className="data-[state=active]:bg-primary">1. Identity</TabsTrigger>
-            <TabsTrigger value="studio" className="data-[state=active]:bg-primary" disabled={!charRevealed}>2. Content</TabsTrigger>
+            <TabsTrigger value="studio" className="data-[state=active]:bg-primary" disabled={!charSaved && !charRevealed}>2. Workshop</TabsTrigger>
           </TabsList>
 
           <TabsContent value="character" className="mt-6">
@@ -201,17 +209,6 @@ function CreatePageContent() {
                       className="bg-black border-white/10"
                       value={charData.name}
                       onChange={(e) => setCharData({...charData, name: e.target.value})}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="age">Base Age (18+)</Label>
-                    <Input 
-                      id="age" 
-                      type="number" 
-                      min={18} 
-                      className="bg-black border-white/10"
-                      value={charData.age}
-                      onChange={(e) => setCharData({...charData, age: parseInt(e.target.value) || 18})}
                     />
                   </div>
                   <div className="space-y-2">
@@ -235,7 +232,7 @@ function CreatePageContent() {
                 </CardContent>
               </Card>
             ) : (
-              <div className="space-y-6">
+              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <div className="relative aspect-[3/4] w-full rounded-2xl overflow-hidden border-4 border-primary shadow-2xl shadow-primary/20">
                   <Image 
                     src={charData.imageUrl} 
@@ -267,31 +264,21 @@ function CreatePageContent() {
                       {charData.personality}
                     </p>
                     
-                    <div className="space-y-3">
-                      <div className="grid grid-cols-2 gap-3">
-                        <Button 
-                          variant="outline" 
-                          className="border-white/10 bg-black hover:bg-zinc-800" 
-                          onClick={() => setCharRevealed(false)}
-                        >
-                          <RefreshCcw className="w-4 h-4 mr-2" />
-                          Try Again
-                        </Button>
-                        <Button 
-                          className={charSaved ? "bg-green-600 hover:bg-green-700" : "bg-zinc-100 text-black hover:bg-white"}
-                          onClick={handleSaveCharacter}
-                        >
-                          {charSaved ? <CheckCircle2 className="w-4 h-4 mr-2" /> : <Save className="w-4 h-4 mr-2" />}
-                          {charSaved ? "Saved" : "Save Influencer"}
-                        </Button>
-                      </div>
-                      
+                    <div className="grid grid-cols-2 gap-3">
                       <Button 
-                        className="w-full bg-primary font-black h-12 text-lg italic uppercase" 
-                        onClick={() => setStep("studio")}
+                        variant="outline" 
+                        className="border-white/10 bg-black hover:bg-zinc-800" 
+                        onClick={() => setCharRevealed(false)}
                       >
-                        Enter Content Studio
-                        <ChevronRight className="w-5 h-5 ml-1" />
+                        <RefreshCcw className="w-4 h-4 mr-2" />
+                        Try Again
+                      </Button>
+                      <Button 
+                        className={charSaved ? "bg-green-600 hover:bg-green-700" : "bg-zinc-100 text-black hover:bg-white"}
+                        onClick={handleSaveCharacter}
+                      >
+                        {charSaved ? <CheckCircle2 className="w-4 h-4 mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+                        {charSaved ? "Saved" : "Save to Profile"}
                       </Button>
                     </div>
                   </CardContent>
@@ -306,28 +293,28 @@ function CreatePageContent() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Sparkles className="w-5 h-5 text-accent" />
-                    Production Studio
+                    Content Studio
                   </CardTitle>
-                  <CardDescription>Direct your influencer for their next post.</CardDescription>
+                  <CardDescription>Direct your influencer's next viral hit.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="p-4 rounded-lg bg-black border border-white/10 flex items-center gap-4">
                     <div className="w-12 h-12 rounded-full border-2 border-primary overflow-hidden relative">
                       <Image 
-                        src={charData.imageUrl} 
+                        src={charData.imageUrl || "https://picsum.photos/seed/placeholder/200"} 
                         alt="Profile" 
                         fill 
                         className="object-cover"
                       />
                     </div>
                     <div>
-                      <p className="font-bold">{charData.name}</p>
-                      <p className="text-xs text-muted-foreground">{charData.style}</p>
+                      <p className="font-bold text-white">{charData.name || "Select Influencer"}</p>
+                      <p className="text-xs text-muted-foreground">{charData.style || "AI Model"}</p>
                     </div>
                   </div>
 
                   <div className="space-y-3">
-                    <Label>Content Type</Label>
+                    <Label>Format</Label>
                     <RadioGroup 
                       value={contentType} 
                       onValueChange={(v) => {
@@ -337,23 +324,23 @@ function CreatePageContent() {
                       }}
                       className="grid grid-cols-2 gap-4"
                     >
-                      <div>
+                      <div className="cursor-pointer">
                         <RadioGroupItem value="video" id="video" className="peer sr-only" />
                         <Label
                           htmlFor="video"
-                          className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+                          className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-black/40 p-4 hover:bg-zinc-800 peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/10 transition-all [&:has([data-state=checked])]:border-primary"
                         >
-                          <VideoIcon className="mb-3 h-6 w-6" />
+                          <VideoIcon className="mb-3 h-6 w-6 text-primary" />
                           Video
                         </Label>
                       </div>
-                      <div>
+                      <div className="cursor-pointer">
                         <RadioGroupItem value="photo" id="photo" className="peer sr-only" />
                         <Label
                           htmlFor="photo"
-                          className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+                          className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-black/40 p-4 hover:bg-zinc-800 peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/10 transition-all [&:has([data-state=checked])]:border-primary"
                         >
-                          <ImageIcon className="mb-3 h-6 w-6" />
+                          <ImageIcon className="mb-3 h-6 w-6 text-primary" />
                           Photo Set
                         </Label>
                       </div>
@@ -361,35 +348,51 @@ function CreatePageContent() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label>{contentType === 'photo' ? 'Collection Vibe' : 'Video Style'}</Label>
+                    <Label className="flex items-center gap-2">
+                      <Zap className="w-3 h-3 text-accent" />
+                      Viral Vibe / Trend
+                    </Label>
                     <Select value={contentStyle} onValueChange={setContentStyle}>
                       <SelectTrigger className="bg-black border-white/10">
-                        <SelectValue placeholder="Select style" />
+                        <SelectValue placeholder="Select a trend" />
                       </SelectTrigger>
                       <SelectContent className="bg-zinc-900 border-white/10">
                         {contentType === "video" ? (
                           <>
-                            <SelectItem value="viral dance">Viral Dance</SelectItem>
-                            <SelectItem value="aesthetic">Aesthetic B-Roll</SelectItem>
-                            <SelectItem value="POV">POV / Storytime</SelectItem>
-                            <SelectItem value="lip sync">Lip Sync</SelectItem>
+                            <SelectItem value="viral dance">Viral Dance Challenge</SelectItem>
+                            <SelectItem value="aesthetic">Cinematic B-Roll</SelectItem>
+                            <SelectItem value="POV">POV Storytelling</SelectItem>
+                            <SelectItem value="lip sync">Music Lip Sync</SelectItem>
                           </>
                         ) : (
                           <>
                             <SelectItem value="portrait">Studio Portrait Set</SelectItem>
                             <SelectItem value="editorial">High Fashion Editorial</SelectItem>
-                            <SelectItem value="street">Street Photography Series</SelectItem>
-                            <SelectItem value="lifestyle">Candid Lifestyle Story</SelectItem>
+                            <SelectItem value="street">Street Photography</SelectItem>
+                            <SelectItem value="lifestyle">Candid Lifestyle</SelectItem>
                           </>
                         )}
                       </SelectContent>
                     </Select>
                   </div>
 
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-2">
+                      <Wand2 className="w-3 h-3 text-primary" />
+                      Direct Command (Optional)
+                    </Label>
+                    <Textarea 
+                      placeholder="e.g. dancing on a rooftop at sunset, holding a neon coffee cup..." 
+                      className="bg-black border-white/10 min-h-[100px] resize-none"
+                      value={userPrompt}
+                      onChange={(e) => setUserPrompt(e.target.value)}
+                    />
+                  </div>
+
                   <Button 
-                    className="w-full bg-accent text-black hover:bg-accent/80 font-black h-12 text-lg"
+                    className="w-full bg-accent text-black hover:bg-accent/80 font-black h-12 text-lg uppercase italic"
                     onClick={handleGenerateContent}
-                    disabled={isGenerating}
+                    disabled={isGenerating || (!charData.name && !charSaved)}
                   >
                     {isGenerating ? (
                       <>
@@ -406,7 +409,7 @@ function CreatePageContent() {
                 </CardContent>
               </Card>
             ) : (
-              <div className="space-y-6">
+              <div className="space-y-6 animate-in zoom-in-95 duration-500">
                 <div className={`relative ${generatedResult.type === 'video' ? 'aspect-[9/16]' : 'aspect-[4/5]'} w-full max-w-sm mx-auto`}>
                   {generatedResult.type === 'video' ? (
                     <div className="relative w-full h-full rounded-2xl overflow-hidden border-4 border-primary shadow-2xl shadow-primary/20">
@@ -417,67 +420,80 @@ function CreatePageContent() {
                         className="object-cover"
                       />
                       <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                         <VideoIcon className="w-12 h-12 text-white opacity-50" />
+                         <div className="p-4 rounded-full bg-white/20 backdrop-blur-md">
+                           <VideoIcon className="w-10 h-10 text-white" />
+                         </div>
+                      </div>
+                      <div className="absolute bottom-4 left-4 right-4 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <Music className="w-4 h-4 text-white animate-spin-slow" />
+                          <span className="text-[10px] font-bold text-white uppercase tracking-tighter">Viral Audio Attached</span>
+                        </div>
                       </div>
                     </div>
                   ) : (
-                    <Carousel className="w-full">
-                      <CarouselContent>
-                        {generatedResult.mediaUrls.map((url, index) => (
-                          <CarouselItem key={index}>
-                            <div className="relative aspect-[4/5] rounded-2xl overflow-hidden border-4 border-primary shadow-2xl shadow-primary/20">
-                              <Image 
-                                src={url} 
-                                alt={`Generated Photo ${index + 1}`} 
-                                fill 
-                                className="object-cover"
-                                data-ai-hint="fashion portrait"
-                              />
-                              <div className="absolute top-4 right-4 bg-primary px-2 py-1 rounded text-[10px] font-bold">
-                                Image {index + 1}/5
+                    <div className="space-y-4">
+                      <Carousel className="w-full">
+                        <CarouselContent>
+                          {generatedResult.mediaUrls.map((url, index) => (
+                            <CarouselItem key={index}>
+                              <div className="relative aspect-[4/5] rounded-2xl overflow-hidden border-4 border-primary shadow-2xl shadow-primary/20">
+                                <Image 
+                                  src={url} 
+                                  alt={`Generated Photo ${index + 1}`} 
+                                  fill 
+                                  className="object-cover"
+                                />
+                                <div className="absolute top-4 right-4 bg-primary/90 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-black italic">
+                                  {index + 1} / 5
+                                </div>
                               </div>
-                            </div>
-                          </CarouselItem>
-                        ))}
-                      </CarouselContent>
-                      <CarouselPrevious className="left-2 bg-black/50 border-none" />
-                      <CarouselNext className="right-2 bg-black/50 border-none" />
-                    </Carousel>
+                            </CarouselItem>
+                          ))}
+                        </CarouselContent>
+                        <CarouselPrevious className="left-2 bg-black/50 border-none h-8 w-8" />
+                        <CarouselNext className="right-2 bg-black/50 border-none h-8 w-8" />
+                      </Carousel>
+                      <p className="text-[10px] text-center text-muted-foreground uppercase font-black tracking-widest">Swipe for full cohesive set</p>
+                    </div>
                   )}
-                  
-                  <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-white/20 backdrop-blur-md p-3 rounded-full border border-white/20">
-                    <CheckCircle2 className="w-6 h-6 text-white" />
-                  </div>
                 </div>
 
                 <Card className="bg-zinc-900 border-white/5">
                   <CardContent className="pt-6 space-y-4">
                     <div className="space-y-2">
-                      <Label className="text-muted-foreground uppercase text-[10px] tracking-widest font-bold">
-                        {generatedResult.type === 'photo' ? 'Collection Caption' : 'Caption Preview'}
-                      </Label>
-                      <p className="text-sm italic p-3 bg-black rounded-md border border-white/5">{generatedResult.caption}</p>
+                      <div className="flex items-center justify-between">
+                        <Label className="text-muted-foreground uppercase text-[10px] tracking-widest font-bold">Generated Caption</Label>
+                        <Hash className="w-3 h-3 text-primary" />
+                      </div>
+                      <p className="text-sm italic p-4 bg-black rounded-xl border border-white/5 leading-relaxed">
+                        {generatedResult.caption}
+                      </p>
                       <div className="flex flex-wrap gap-2 pt-2">
-                        {generatedResult.hashtags.map(h => <span key={h} className="text-xs text-accent">{h}</span>)}
+                        {generatedResult.hashtags.map(h => (
+                          <span key={h} className="px-2 py-0.5 rounded-full bg-primary/10 text-[10px] font-bold text-primary border border-primary/20">
+                            {h}
+                          </span>
+                        ))}
                       </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
-                      <Button variant="outline" className="border-white/10 bg-black" onClick={copyCaption}>
+                      <Button variant="outline" className="border-white/10 bg-black h-11" onClick={copyCaption}>
                         <Copy className="w-4 h-4 mr-2" />
                         Copy Text
                       </Button>
-                      <Button variant="outline" className="border-white/10 bg-black">
+                      <Button variant="outline" className="border-white/10 bg-black h-11">
                         <Download className="w-4 h-4 mr-2" />
                         Save Set
                       </Button>
                     </div>
 
-                    <Button className="w-full bg-primary font-bold h-12" onClick={() => {
+                    <Button className="w-full bg-primary font-black h-12 uppercase italic" onClick={() => {
                       setGeneratedResult(null);
-                      toast({ title: "Post saved to your feed!" });
+                      toast({ title: "Post saved to your profile feed!" });
                     }}>
-                      <Save className="w-4 h-4 mr-2" />
+                      <CheckCircle2 className="w-5 h-5 mr-2" />
                       Post to Profile
                     </Button>
                   </CardContent>
@@ -494,7 +510,10 @@ function CreatePageContent() {
 
 export default function CreatePage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-black flex items-center justify-center text-primary font-bold italic animate-pulse">Initializing Studio...</div>}>
+    <Suspense fallback={<div className="min-h-screen bg-black flex flex-col items-center justify-center text-primary font-black italic gap-4">
+      <Loader2 className="w-12 h-12 animate-spin" />
+      <span className="animate-pulse tracking-widest uppercase text-sm">Initializing Studio...</span>
+    </div>}>
       <CreatePageContent />
     </Suspense>
   );

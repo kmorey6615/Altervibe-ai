@@ -16,7 +16,7 @@ const GenerateSocialMediaCaptionInputSchema = z.object({
   characterStyle: z.string().describe("The visual style or aesthetic of the AI character."),
   characterPersonality: z.string().describe("The personality traits of the AI character."),
   contentType: z.enum(['photo', 'video']).describe("Whether the content is a photo or a video."),
-  contentStyle: z.string().describe("The chosen content style (e.g., viral dance, aesthetic, editorial, portrait)."),
+  contentStyle: z.string().describe("The chosen content style, trend, or specific prompt from the user."),
 });
 export type GenerateSocialMediaCaptionInput = z.infer<typeof GenerateSocialMediaCaptionInputSchema>;
 
@@ -43,7 +43,11 @@ Personality: {{{characterPersonality}}}
 Content Type: {{{contentType}}}
 Vibe/Action: {{{contentStyle}}}
 
-Craft a caption that feels authentic to this character's voice. If it's a photo, make it sound like a snapshot moment. If it's a video, make it sound like a dynamic update. Include trending hashtags.`,
+Task:
+- If it's a "photo" set, the caption should sound like an editorial or a collection of snapshots. Mention the "aesthetic" or "fit".
+- If it's a "video", make it sound like a dynamic moment, a vlog snippet, or a dance challenge.
+- Use the character's unique voice and tone.
+- Include 3-5 trending and relevant hashtags.`,
 });
 
 const generateSocialMediaCaptionFlow = ai.defineFlow(
