@@ -66,31 +66,30 @@ export function FeedItem({ video }: FeedItemProps) {
       </div>
 
       {/* Bottom Info Area */}
-      <div className="p-6 pb-28 relative z-10 w-full bg-gradient-to-t from-black/80 to-transparent">
+      <div className="p-6 pb-28 relative z-10 w-full">
         <div className="max-w-md space-y-3">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full border-2 border-primary bg-zinc-800 flex items-center justify-center font-bold text-xs overflow-hidden">
+            <div className="w-10 h-10 rounded-full border-2 border-primary bg-zinc-800 flex items-center justify-center font-bold text-xs overflow-hidden relative">
                <Image 
                 src={`https://picsum.photos/seed/${video.userName}/100/100`}
                 alt={video.userName}
-                width={40}
-                height={40}
+                fill
                 className="object-cover"
               />
             </div>
-            <h3 className="font-bold text-base flex items-center gap-2">
+            <h3 className="font-bold text-base flex items-center gap-2 drop-shadow-lg">
               @{video.userName}
               <span className="bg-primary px-1.5 py-0.5 rounded text-[8px] uppercase tracking-tighter">Verified AI</span>
             </h3>
           </div>
           
-          <p className="text-sm text-white/95 line-clamp-2 leading-relaxed font-medium">
+          <p className="text-sm text-white/95 line-clamp-2 leading-relaxed font-medium drop-shadow-md">
             {video.caption}
           </p>
           
           <div className="flex flex-wrap gap-2">
             {video.hashtags.map((tag) => (
-              <span key={tag} className="text-xs font-bold text-accent">
+              <span key={tag} className="text-xs font-bold text-accent drop-shadow-md">
                 {tag}
               </span>
             ))}
@@ -99,7 +98,7 @@ export function FeedItem({ video }: FeedItemProps) {
           <div className="flex items-center justify-between pt-2">
             <div className="flex items-center gap-2 text-[10px] text-white/60 overflow-hidden max-w-[150px]">
               <Music className="w-3 h-3 animate-spin-slow" />
-              <div className="whitespace-nowrap italic">
+              <div className="whitespace-nowrap italic drop-shadow-md">
                 Original Sound - {video.userName}
               </div>
             </div>

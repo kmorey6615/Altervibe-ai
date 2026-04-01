@@ -41,7 +41,7 @@
 .tiktok-feed {
   scroll-snap-type: y mandatory;
   overflow-y: scroll;
-  height: 100vh;
+  height: 100dvh;
   scrollbar-width: none; /* Firefox */
   -ms-overflow-style: none;  /* IE and Edge */
 }
@@ -52,7 +52,7 @@
 
 .tiktok-item {
   scroll-snap-align: start;
-  height: 100vh;
+  height: 100dvh;
   width: 100%;
   position: relative;
   overflow: hidden;
