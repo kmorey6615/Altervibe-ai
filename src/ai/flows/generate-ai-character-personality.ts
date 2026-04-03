@@ -1,6 +1,6 @@
 'use server';
 /**
- * @fileOverview A Genkit flow to generate a detailed personality description for an AI character.
+ * @fileOverview A Genkit flow to generate detailed personality options for an AI character.
  *
  * - generateAICharacterPersonality - A function that handles the AI character personality generation process.
  * - GenerateAICharacterPersonalityInput - The input type for the generateAICharacterPersonality function.
@@ -12,19 +12,25 @@ import {z} from 'genkit';
 
 const GenerateAICharacterPersonalityInputSchema = z.object({
   name: z.string().describe('The name of the AI character.'),
-  style: z
-    .string()
-    .describe(
-      'The general style or aesthetic of the AI character (e.g., "futuristic pop star", "vintage fashionista", "rebellious gamer").'
-    ),
+  gender: z.string().describe('The gender of the character (e.g., Male, Female, Non-binary).'),
+  ageRange: z.string().describe('The age range (e.g., 18-22, Late 20s).'),
+  outfitIdeas: z.string().describe('Style or outfit concepts.'),
+  aesthetic: z.string().describe('General aesthetic (e.g., Cyberpunk, Cottagecore).'),
+  vibe: z.string().describe('The personality vibe (e.g., Sassy, Intellectual, Energetic).'),
 });
 export type GenerateAICharacterPersonalityInput = z.infer<
   typeof GenerateAICharacterPersonalityInputSchema
 >;
 
+const CharacterOptionSchema = z.object({
+  id: z.string(),
+  personalityDescription: z.string().describe('A detailed personality bio.'),
+  visualDescription: z.string().describe('A detailed visual description for the character.'),
+  catchphrase: z.string().describe('A signature phrase the character uses.'),
+});
+
 const GenerateAICharacterPersonalityOutputSchema = z.object({
-  personalityDescription:
-    z.string().describe('A detailed personality description for the AI character, suitable for a social media influencer.'),
+  options: z.array(CharacterOptionSchema).length(2).describe('Two distinct character personality options based on the inputs.'),
 });
 export type GenerateAICharacterPersonalityOutput = z.infer<
   typeof GenerateAICharacterPersonalityOutputSchema
@@ -40,13 +46,24 @@ const prompt = ai.definePrompt({
   name: 'generateAICharacterPersonalityPrompt',
   input: {schema: GenerateAICharacterPersonalityInputSchema},
   output: {schema: GenerateAICharacterPersonalityOutputSchema},
-  prompt: `You are an AI character personality generator for social media influencers. Your task is to create a detailed and engaging personality description for an AI character.
+  prompt: `You are an AI character architect. Your task is to create TWO distinct and compelling personality options for an AI influencer.
 
-Consider the following details:
-Character Name: {{{name}}}
-Character Style: {{{style}}}
+Character Context:
+- Name: {{{name}}}
+- Gender: {{{gender}}}
+- Age Range: {{{ageRange}}}
+- Aesthetic: {{{aesthetic}}}
+- Outfit Style: {{{outfitIdeas}}}
+- Vibe: {{{vibe}}}
 
-The personality should be vibrant, unique, and suitable for creating short-form video content on platforms like TikTok and Instagram. Describe their key traits, interests, typical content themes, and how they would interact with their audience.`,
+Generate two unique interpretations of these details. Option 1 should be more grounded and relatable, while Option 2 should be more stylized or "high-concept". 
+
+Each option must include:
+1. A detailed personality bio.
+2. A description of their specific visual style and common poses.
+3. A signature catchphrase.
+
+The descriptions should be vibrant and optimized for social media engagement.`,
 });
 
 const generateAICharacterPersonalityFlow = ai.defineFlow(
