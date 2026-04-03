@@ -59,9 +59,10 @@ Character Context:
 Generate two unique interpretations of these details. Option 1 should be more grounded and relatable, while Option 2 should be more stylized or "high-concept". 
 
 Each option must include:
-1. A detailed personality bio.
-2. A description of their specific visual style and common poses.
-3. A signature catchphrase.
+1. id: A unique string ID (e.g., "option-1", "option-2").
+2. personalityDescription: A detailed personality bio.
+3. visualDescription: A detailed description of their specific visual style and common poses.
+4. catchphrase: A signature phrase the character uses.
 
 The descriptions should be vibrant and optimized for social media engagement.`,
 });
@@ -74,6 +75,9 @@ const generateAICharacterPersonalityFlow = ai.defineFlow(
   },
   async (input) => {
     const {output} = await prompt(input);
-    return output!;
+    if (!output) {
+      throw new Error('Failed to generate personality options');
+    }
+    return output;
   }
 );

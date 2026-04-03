@@ -16,7 +16,6 @@ import {
   Loader2, 
   Wand2, 
   Copy, 
-  Download, 
   CheckCircle2, 
   Activity, 
   Sparkles, 
@@ -111,8 +110,13 @@ function CreatePageContent() {
       setOptions(charOptions);
       setCharRevealed(true);
       toast({ title: "Two identities generated!" });
-    } catch (e) {
-      toast({ title: "Generation failed. Try again." });
+    } catch (e: any) {
+      console.error(e);
+      toast({ 
+        variant: "destructive",
+        title: "Generation failed.",
+        description: e.message || "Please try again."
+      });
     } finally {
       setIsGenerating(false);
     }
@@ -129,8 +133,6 @@ function CreatePageContent() {
       title: "Influencer Saved!",
       description: `${charInputs.name} is now in your roster.`
     });
-    // If saving the first character, we might want to auto-move to studio, 
-    // but user might want to save both. Let's let them decide.
   };
 
   const handleGenerateContent = async () => {
@@ -144,7 +146,7 @@ function CreatePageContent() {
       
       const result = await generateSocialMediaCaption({
         characterName: charInputs.name,
-        characterAge: 20, // Approximate for caption flow
+        characterAge: 20,
         characterStyle: charInputs.aesthetic,
         characterPersonality: selectedChar.personalityDescription,
         contentType: contentType,
@@ -316,7 +318,7 @@ function CreatePageContent() {
                           CONCEPT {index + 1}
                         </div>
                         <div className="absolute bottom-6 left-6 right-6">
-                          <h3 className="text-2xl font-black uppercase italic italic">{charInputs.name}</h3>
+                          <h3 className="text-2xl font-black uppercase italic">{charInputs.name}</h3>
                           <p className="text-accent text-xs font-bold uppercase tracking-widest">"{opt.catchphrase}"</p>
                         </div>
                       </div>
