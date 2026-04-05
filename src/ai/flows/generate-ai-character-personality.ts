@@ -2,10 +2,6 @@
 'use server';
 /**
  * @fileOverview A Genkit flow for generating two distinct AI character personality concepts.
- *
- * - generatePersonality - A function that handles the generation process.
- * - GeneratePersonalityInput - The input type for the function.
- * - GeneratePersonalityOutput - The return type for the function.
  */
 
 import { ai } from '@/ai/genkit';
@@ -29,7 +25,7 @@ const PersonalityOptionSchema = z.object({
 });
 
 const GeneratePersonalityOutputSchema = z.object({
-  options: z.array(PersonalityOptionSchema).length(2).describe("Exactly two distinct personality options for the user to choose from."),
+  options: z.array(PersonalityOptionSchema).length(2).describe("Exactly two distinct personality options."),
 });
 export type GeneratePersonalityOutput = z.infer<typeof GeneratePersonalityOutputSchema>;
 
@@ -49,7 +45,7 @@ const personalityPrompt = ai.definePrompt({
   
   Generate exactly TWO distinct, high-concept personality and visual profiles for this character. 
   Each profile should feel unique even if they share the same base inputs.
-  Make them sound trendy, engaging, and fit for short-form video platforms like TikTok.`,
+  Make them sound trendy, engaging, and fit for short-form video platforms.`,
 });
 
 export async function generatePersonality(input: GeneratePersonalityInput): Promise<GeneratePersonalityOutput> {

@@ -24,7 +24,6 @@ import {
   Video as VideoIcon,
   Zap,
   RefreshCcw,
-  Music,
   Save
 } from "lucide-react";
 import { generatePersonality } from "@/ai/flows/generate-ai-character-personality";
@@ -54,7 +53,7 @@ function CreatePageContent() {
   const [charRevealed, setCharRevealed] = useState(false);
   const [savedChars, setSavedChars] = useState<CharacterOption[]>([]);
   
-  const [character, setCharacter] = useState<CharacterOption | null>(null);
+  const [selectedChar, setSelectedChar] = useState<CharacterOption | null>(null);
 
   const [charInputs, setCharInputs] = useState({
     name: "",
@@ -74,7 +73,6 @@ function CreatePageContent() {
     type: "photo" | "video";
   } | null>(null);
 
-  const [selectedChar, setSelectedChar] = useState<CharacterOption | null>(null);
   const [contentType, setContentType] = useState<"video" | "photo">("video");
   const [contentStyle, setContentStyle] = useState("viral dance");
   const [userPrompt, setUserPrompt] = useState("");
@@ -91,7 +89,7 @@ function CreatePageContent() {
       toast({ 
         variant: "destructive",
         title: "Missing Info", 
-        description: "Create a character name first!" 
+        description: "Give your character a name first!" 
       });
       return;
     }
@@ -131,7 +129,6 @@ function CreatePageContent() {
     }
     setSavedChars([...savedChars, option]);
     setSelectedChar(option);
-    setCharacter(option);
     toast({ 
       title: "Saved!",
       description: `${charInputs.name} is ready for content creation.`
@@ -208,7 +205,7 @@ function CreatePageContent() {
     <main className="min-h-screen bg-black pb-24 pt-8 px-4 overflow-y-auto">
       <div className="max-w-xl mx-auto space-y-8">
         <header className="text-center space-y-2">
-          <h1 className="text-4xl font-black tracking-tighter text-white uppercase italic" onClick={() => console.log("Character State:", character)}>
+          <h1 className="text-4xl font-black tracking-tighter text-white uppercase italic">
             AlterVibe <span className="text-primary">Studio</span>
           </h1>
           <p className="text-muted-foreground text-sm">Design and direct your AI creations</p>
@@ -389,10 +386,7 @@ function CreatePageContent() {
                       {savedChars.map((char) => (
                         <button 
                           key={char.id}
-                          onClick={() => {
-                            setSelectedChar(char);
-                            setCharacter(char);
-                          }}
+                          onClick={() => setSelectedChar(char)}
                           className="flex-shrink-0 w-24 flex flex-col items-center gap-2 group outline-none"
                         >
                           <div className={`w-20 h-20 rounded-full border-4 transition-all overflow-hidden relative ${selectedChar?.id === char.id ? 'border-primary scale-110 shadow-lg shadow-primary/20' : 'border-white/10 opacity-50'}`}>
@@ -404,10 +398,10 @@ function CreatePageContent() {
                     </div>
                   </div>
 
-                  {character?.personality && (
+                  {selectedChar?.personality && (
                     <div className="p-4 bg-black/40 rounded-xl border border-white/10 animate-in fade-in duration-300">
                       <h3 className="text-sm font-bold text-primary mb-1 uppercase tracking-wider">Personality:</h3>
-                      <p className="text-xs italic text-zinc-300 leading-relaxed">{character.personality}</p>
+                      <p className="text-xs italic text-zinc-300 leading-relaxed">{selectedChar.personality}</p>
                     </div>
                   )}
 
