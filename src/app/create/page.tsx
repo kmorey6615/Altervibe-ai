@@ -131,7 +131,7 @@ function CreatePageContent() {
     setSelectedChar(option);
     toast({ 
       title: "Saved!",
-      description: `${charInputs.name} is ready for content creation.`
+      description: `${charInputs.name} is ready for workshop.`
     });
   };
 

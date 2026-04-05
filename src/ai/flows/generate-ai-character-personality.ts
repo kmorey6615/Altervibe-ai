@@ -44,6 +44,7 @@ const personalityPrompt = ai.definePrompt({
   Vibe: {{vibe}}
   
   Generate exactly TWO distinct, high-concept personality and visual profiles for this character. 
+  Each profile must have a unique 'id' string.
   Each profile should feel unique even if they share the same base inputs.
   Make them sound trendy, engaging, and fit for short-form video platforms.`,
 });
