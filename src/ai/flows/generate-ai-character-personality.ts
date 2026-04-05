@@ -60,10 +60,23 @@ const generatePersonalityFlow = ai.defineFlow(
     outputSchema: GeneratePersonalityOutputSchema,
   },
   async (input) => {
-    const { output } = await personalityPrompt(input);
-    if (!output) {
-      throw new Error('Failed to generate personality options');
-    }
+    // Temporarily mocking output to bypass API issues during development
+    const output = {
+      options: [
+        {
+          id: "concept-1",
+          personality: "Flirty, confident, playful. A digital socialite who loves high-fashion and late-night city vibes.",
+          visualDescription: "Neon-lit streets, wearing oversized chrome jackets and silver accessories.",
+          catchphrase: "Stay glowing, stars. ✨"
+        },
+        {
+          id: "concept-2",
+          personality: "Intellectual, mysterious, and tech-savvy. An urban explorer finding beauty in the code of the city.",
+          visualDescription: "Minimalist brutalist architecture, monochrome technical streetwear, soft daylight shadows.",
+          catchphrase: "Perspective is everything. 🌐"
+        }
+      ]
+    };
     return output;
   }
 );

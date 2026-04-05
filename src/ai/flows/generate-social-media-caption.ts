@@ -2,10 +2,6 @@
 'use server';
 /**
  * @fileOverview A Genkit flow for generating engaging social media captions for photo or video content.
- *
- * - generateSocialMediaCaption - A function that handles the caption generation process.
- * - GenerateSocialMediaCaptionInput - The input type for the generateSocialMediaCaption function.
- * - GenerateSocialMediaCaptionOutput - The return type for the generateSocialMediaCaption function.
  */
 
 import { ai } from '@/ai/genkit';
@@ -56,10 +52,11 @@ const generateSocialMediaCaptionFlow = ai.defineFlow(
     outputSchema: GenerateSocialMediaCaptionOutputSchema,
   },
   async (input) => {
-    const { output } = await captionPrompt(input);
-    if (!output) {
-      throw new Error('Failed to generate caption');
-    }
+    // Temporarily mocking output to bypass API issues during development
+    const output = {
+      caption: "Feeling the vibe today in the digital landscape. ✨ Can't wait for you to see what I'm working on!",
+      hashtags: ["#AIVibe", "#DigitalLife", "#TechStyle", "#NewVibe"]
+    };
     return output;
   }
 );
