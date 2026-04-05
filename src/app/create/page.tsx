@@ -104,6 +104,7 @@ function CreatePageContent() {
     setIsGenerating(true);
     
     try {
+      // Logic for the requested handleGenerate style
       const result = await generatePersonality(charInputs);
       
       const charOptions = result.options.map((opt, idx) => {
