@@ -36,9 +36,12 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
+import { db } from "@/lib/firebase";
+import { collection, addDoc, query, onSnapshot, orderBy } from "firebase/firestore";
 
 type CharacterOption = {
   id: string;
+  name?: string;
   personality: string;
   visualDescription: string;
   catchphrase: string;
@@ -76,6 +79,19 @@ function CreatePageContent() {
   const [contentType, setContentType] = useState<"video" | "photo">("video");
   const [contentStyle, setContentStyle] = useState("viral dance");
   const [userPrompt, setUserPrompt] = useState("");
+
+  // Sync with Firestore roster
+  useEffect(() => {
+    const q = query(collection(db, "characters"), orderBy("createdAt", "desc"));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const chars = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as CharacterOption[];
+      setSavedChars(chars);
+    });
+    return () => unsubscribe();
+  }, []);
 
   useEffect(() => {
     const styleParam = searchParams.get("style");
@@ -122,17 +138,31 @@ function CreatePageContent() {
     }
   };
 
-  const handleSaveCharacter = (option: CharacterOption) => {
-    if (savedChars.find(c => c.id === option.id)) {
-      toast({ title: "Already saved", description: "This character is already in your roster." });
-      return;
+  const handleSaveCharacter = async (option: CharacterOption) => {
+    try {
+      await addDoc(collection(db, "characters"), {
+        name: charInputs.name,
+        personality: option.personality,
+        visualDescription: option.visualDescription,
+        catchphrase: option.catchphrase,
+        imageUrl: option.imageUrl,
+        aesthetic: charInputs.aesthetic,
+        createdAt: new Date().toISOString()
+      });
+      
+      setSelectedChar(option);
+      toast({ 
+        title: "Saved!",
+        description: `${charInputs.name} is now in your roster.`
+      });
+    } catch (error) {
+      console.error("Error saving character:", error);
+      toast({
+        variant: "destructive",
+        title: "Save failed",
+        description: "Could not save to the cloud."
+      });
     }
-    setSavedChars([...savedChars, option]);
-    setSelectedChar(option);
-    toast({ 
-      title: "Saved!",
-      description: `${charInputs.name} is ready for workshop.`
-    });
   };
 
   const handleGenerateContent = async () => {
@@ -151,7 +181,7 @@ function CreatePageContent() {
       const styleInput = userPrompt || contentStyle;
       
       const result = await generateSocialMediaCaption({
-        characterName: charInputs.name,
+        characterName: selectedChar.name || charInputs.name,
         characterAge: 20,
         characterStyle: charInputs.aesthetic,
         characterPersonality: selectedChar.personality,
@@ -228,10 +258,10 @@ function CreatePageContent() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="name">Name</Label>
-                      <Input 
+                      <input 
                         id="name" 
                         placeholder="Luna Spark" 
-                        className="bg-black border-white/10"
+                        className="flex h-10 w-full rounded-md border border-white/10 bg-black px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                         value={charInputs.name}
                         onChange={(e) => setCharInputs({...charInputs, name: e.target.value})}
                       />
@@ -254,20 +284,20 @@ function CreatePageContent() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="age">Age Range</Label>
-                      <Input 
+                      <input 
                         id="age" 
                         placeholder="e.g. 18-24" 
-                        className="bg-black border-white/10"
+                        className="flex h-10 w-full rounded-md border border-white/10 bg-black px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                         value={charInputs.ageRange}
                         onChange={(e) => setCharInputs({...charInputs, ageRange: e.target.value})}
                       />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="vibe">Vibe</Label>
-                      <Input 
+                      <input 
                         id="vibe" 
                         placeholder="e.g. Sassy, Intellectual" 
-                        className="bg-black border-white/10"
+                        className="flex h-10 w-full rounded-md border border-white/10 bg-black px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                         value={charInputs.vibe}
                         onChange={(e) => setCharInputs({...charInputs, vibe: e.target.value})}
                       />
@@ -276,10 +306,10 @@ function CreatePageContent() {
 
                   <div className="space-y-2">
                     <Label htmlFor="aesthetic">Aesthetic Style</Label>
-                    <Input 
+                    <input 
                       id="aesthetic" 
                       placeholder="e.g. Y2K Cyberpunk, Soft Minimalism" 
-                      className="bg-black border-white/10"
+                      className="flex h-10 w-full rounded-md border border-white/10 bg-black px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                       value={charInputs.aesthetic}
                       onChange={(e) => setCharInputs({...charInputs, aesthetic: e.target.value})}
                     />
@@ -321,7 +351,7 @@ function CreatePageContent() {
 
                 <div className="grid grid-cols-1 gap-8">
                   {options.map((opt, index) => (
-                    <Card key={opt.id} className="bg-zinc-900 border-white/10 overflow-hidden shadow-xl">
+                    <Card key={index} className="bg-zinc-900 border-white/10 overflow-hidden shadow-xl">
                       <div className="aspect-[4/5] relative">
                         <Image src={opt.imageUrl} alt="AI Character Preview" fill className="object-cover" />
                         <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent" />
@@ -343,10 +373,11 @@ function CreatePageContent() {
                           <p className="text-xs text-zinc-400 leading-relaxed">{opt.visualDescription}</p>
                         </div>
                         <Button 
-                          className={`w-full h-11 transition-all ${savedChars.find(c => c.id === opt.id) ? 'bg-green-600 hover:bg-green-700' : 'bg-white text-black hover:bg-zinc-200'}`}
+                          className={`w-full h-11 transition-all ${savedChars.some(c => c.personality === opt.personality) ? 'bg-green-600 hover:bg-green-700' : 'bg-white text-black hover:bg-zinc-200'}`}
                           onClick={() => handleSaveCharacter(opt)}
+                          disabled={savedChars.some(c => c.personality === opt.personality)}
                         >
-                          {savedChars.find(c => c.id === opt.id) ? (
+                          {savedChars.some(c => c.personality === opt.personality) ? (
                             <><CheckCircle2 className="w-4 h-4 mr-2" /> Saved to Roster</>
                           ) : (
                             <><Save className="w-4 h-4 mr-2" /> Save this Character</>
@@ -392,7 +423,7 @@ function CreatePageContent() {
                           <div className={`w-20 h-20 rounded-full border-4 transition-all overflow-hidden relative ${selectedChar?.id === char.id ? 'border-primary scale-110 shadow-lg shadow-primary/20' : 'border-white/10 opacity-50'}`}>
                             <Image src={char.imageUrl} alt="Roster" fill className="object-cover" />
                           </div>
-                          <span className={`text-[10px] font-bold truncate w-full text-center ${selectedChar?.id === char.id ? 'text-primary' : 'text-muted-foreground'}`}>{charInputs.name}</span>
+                          <span className={`text-[10px] font-bold truncate w-full text-center ${selectedChar?.id === char.id ? 'text-primary' : 'text-muted-foreground'}`}>{char.name}</span>
                         </button>
                       ))}
                     </div>
