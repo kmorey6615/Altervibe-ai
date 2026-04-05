@@ -23,7 +23,7 @@ export type GeneratePersonalityInput = z.infer<typeof GeneratePersonalityInputSc
 
 const PersonalityOptionSchema = z.object({
   id: z.string().describe("A unique identifier for this option."),
-  personalityDescription: z.string().describe("A detailed description of the character's personality and back-story."),
+  personality: z.string().describe("A detailed description of the character's personality and back-story."),
   visualDescription: z.string().describe("A description of the character's signature look and lighting vibe."),
   catchphrase: z.string().describe("A short, catchy phrase the character often uses."),
 });

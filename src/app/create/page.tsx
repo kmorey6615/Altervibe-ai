@@ -25,10 +25,7 @@ import {
   Zap,
   RefreshCcw,
   Music,
-  Hash,
-  Save,
-  User,
-  Heart
+  Save
 } from "lucide-react";
 import { generatePersonality } from "@/ai/flows/generate-ai-character-personality";
 import { generateSocialMediaCaption } from "@/ai/flows/generate-social-media-caption";
@@ -43,7 +40,7 @@ import {
 
 type CharacterOption = {
   id: string;
-  personalityDescription: string;
+  personality: string;
   visualDescription: string;
   catchphrase: string;
   imageUrl: string;
@@ -57,6 +54,9 @@ function CreatePageContent() {
   const [charRevealed, setCharRevealed] = useState(false);
   const [savedChars, setSavedChars] = useState<CharacterOption[]>([]);
   
+  // Single character state for handling the generation snippet logic
+  const [character, setCharacter] = useState<any>(null);
+
   // Character Input State
   const [charInputs, setCharInputs] = useState({
     name: "",
@@ -91,8 +91,7 @@ function CreatePageContent() {
     }
   }, [searchParams]);
 
-  const handleGeneratePersonality = async () => {
-    // Implementing requested check
+  const handleGenerate = async () => {
     if (!charInputs.name) {
       toast({ 
         variant: "destructive",
@@ -105,7 +104,6 @@ function CreatePageContent() {
     setIsGenerating(true);
     
     try {
-      // Logic inspired by user request: personality = await generatePersonality(input)
       const result = await generatePersonality(charInputs);
       
       const charOptions = result.options.map((opt, idx) => {
@@ -138,6 +136,8 @@ function CreatePageContent() {
     }
     setSavedChars([...savedChars, option]);
     setSelectedChar(option);
+    // Sync with the 'character' state for the requested snippet
+    setCharacter(option);
     toast({ 
       title: "Saved!",
       description: `${charInputs.name} is ready for content creation.`
@@ -163,7 +163,7 @@ function CreatePageContent() {
         characterName: charInputs.name,
         characterAge: 20,
         characterStyle: charInputs.aesthetic,
-        characterPersonality: selectedChar.personalityDescription,
+        characterPersonality: selectedChar.personality,
         contentType: contentType,
         contentStyle: styleInput
       });
@@ -307,7 +307,7 @@ function CreatePageContent() {
 
                   <Button 
                     className="w-full bg-primary hover:bg-primary/80 font-bold h-12 text-lg shadow-lg shadow-primary/20"
-                    onClick={handleGeneratePersonality}
+                    onClick={handleGenerate}
                     disabled={isGenerating}
                   >
                     {isGenerating ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <Wand2 className="w-5 h-5 mr-2" />}
@@ -345,7 +345,7 @@ function CreatePageContent() {
                       <CardContent className="pt-6 space-y-4">
                         <div className="space-y-2">
                           <Label className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Bio</Label>
-                          <p className="text-sm italic text-zinc-300 leading-relaxed">{opt.personalityDescription}</p>
+                          <p className="text-sm italic text-zinc-300 leading-relaxed">{opt.personality}</p>
                         </div>
                         <div className="space-y-2">
                           <Label className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Visual Language</Label>
@@ -395,7 +395,10 @@ function CreatePageContent() {
                       {savedChars.map((char) => (
                         <button 
                           key={char.id}
-                          onClick={() => setSelectedChar(char)}
+                          onClick={() => {
+                            setSelectedChar(char);
+                            setCharacter(char);
+                          }}
                           className="flex-shrink-0 w-24 flex flex-col items-center gap-2 group outline-none"
                         >
                           <div className={`w-20 h-20 rounded-full border-4 transition-all overflow-hidden relative ${selectedChar?.id === char.id ? 'border-primary scale-110 shadow-lg shadow-primary/20' : 'border-white/10 opacity-50'}`}>
@@ -406,6 +409,14 @@ function CreatePageContent() {
                       ))}
                     </div>
                   </div>
+
+                  {/* Requested UI Snippet */}
+                  {character?.personality && (
+                    <div className="p-4 bg-black/40 rounded-xl border border-white/10 animate-in fade-in duration-300">
+                      <h3 className="text-sm font-bold text-primary mb-1 uppercase tracking-wider">Personality:</h3>
+                      <p className="text-xs italic text-zinc-300 leading-relaxed">{character.personality}</p>
+                    </div>
+                  )}
 
                   <div className="space-y-3">
                     <Label>Format</Label>
