@@ -27,6 +27,24 @@ const GenerateSocialMediaCaptionOutputSchema = z.object({
 });
 export type GenerateSocialMediaCaptionOutput = z.infer<typeof GenerateSocialMediaCaptionOutputSchema>;
 
+const captionPrompt = ai.definePrompt({
+  name: 'captionPrompt',
+  input: { schema: GenerateSocialMediaCaptionInputSchema },
+  output: { schema: GenerateSocialMediaCaptionOutputSchema },
+  prompt: `You are writing a social media post for an AI Influencer.
+  
+  Character: {{characterName}}
+  Age: {{characterAge}}
+  Style/Aesthetic: {{characterStyle}}
+  Personality: {{characterPersonality}}
+  Content Type: {{contentType}}
+  Context/Style: {{contentStyle}}
+  
+  Write a caption that sounds like a real person, using the character's unique voice. 
+  Include some emojis and relevant trending hashtags.
+  The caption should be high-engagement and fit the platform (TikTok/Instagram style).`,
+});
+
 export async function generateSocialMediaCaption(input: GenerateSocialMediaCaptionInput): Promise<GenerateSocialMediaCaptionOutput> {
   return generateSocialMediaCaptionFlow(input);
 }
@@ -38,15 +56,10 @@ const generateSocialMediaCaptionFlow = ai.defineFlow(
     outputSchema: GenerateSocialMediaCaptionOutputSchema,
   },
   async (input) => {
-    // Mocking the AI response to ensure the app works without an API key
-    const mockCaptions = {
-      photo: `Editorial dump from the ${input.contentStyle} set. ✨ Channeling that ${input.characterStyle} energy today. What do we think of the fit?`,
-      video: `POV: You're witnessing the ${input.contentStyle} of the century. 🎬 Just a quick snippet from my day. Stay tuned for more!`,
-    };
-
-    return {
-      caption: mockCaptions[input.contentType],
-      hashtags: ['#AlterVibe', `#${input.characterName.replace(/\s+/g, '')}`, '#AIInfluencer', '#VirtualStyle'],
-    };
+    const { output } = await captionPrompt(input);
+    if (!output) {
+      throw new Error('Failed to generate caption');
+    }
+    return output;
   }
 );

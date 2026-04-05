@@ -37,6 +37,28 @@ export type GenerateAICharacterPersonalityOutput = z.infer<
   typeof GenerateAICharacterPersonalityOutputSchema
 >;
 
+const personalityPrompt = ai.definePrompt({
+  name: 'personalityPrompt',
+  input: { schema: GenerateAICharacterPersonalityInputSchema },
+  output: { schema: GenerateAICharacterPersonalityOutputSchema },
+  prompt: `You are a creative character designer for an AI influencer platform called AlterVibe. 
+  Your goal is to create two distinct, high-engagement personality options for a new AI character.
+  
+  Character Name: {{name}}
+  Gender: {{gender}}
+  Age Range: {{ageRange}}
+  Outfit Ideas: {{outfitIdeas}}
+  Aesthetic: {{aesthetic}}
+  Vibe: {{vibe}}
+  
+  Generate two unique concepts that feel like modern social media influencers. 
+  For each option:
+  1. Create a deep, interesting personality description.
+  2. Provide a visual description that a photographer or image generator could use.
+  3. Give them a catchy signature phrase.
+  Ensure the IDs are 'option-1' and 'option-2'.`,
+});
+
 export async function generateAICharacterPersonality(
   input: GenerateAICharacterPersonalityInput
 ): Promise<GenerateAICharacterPersonalityOutput> {
@@ -50,24 +72,10 @@ const generateAICharacterPersonalityFlow = ai.defineFlow(
     outputSchema: GenerateAICharacterPersonalityOutputSchema,
   },
   async (input) => {
-    // Mocking the AI response to ensure the app works without an API key
-    const output = {
-      options: [
-        {
-          id: 'option-1',
-          personalityDescription: `Flirty, confident, and playful. ${input.name} is a natural trendsetter who knows exactly how to capture an audience's attention with a ${input.vibe} attitude and ${input.aesthetic} flair.`,
-          visualDescription: `Focuses on high-energy poses in ${input.outfitIdeas}. Common settings include vibrant urban backgrounds and neon-lit studios.`,
-          catchphrase: "Stay vibe-y, stay you! ✨",
-        },
-        {
-          id: 'option-2',
-          personalityDescription: `Intellectual, mysterious, and effortlessly cool. This version of ${input.name} prefers deep conversations and a curated, high-concept ${input.aesthetic} look that feels both futuristic and grounded.`,
-          visualDescription: `Cinematic, low-light photography. Often seen in thoughtful poses wearing signature ${input.outfitIdeas} pieces.`,
-          catchphrase: "Logic is the ultimate aesthetic.",
-        },
-      ],
-    };
-
+    const { output } = await personalityPrompt(input);
+    if (!output) {
+      throw new Error('Failed to generate personality options');
+    }
     return output;
   }
 );
