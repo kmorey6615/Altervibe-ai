@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview A Genkit flow for generating engaging social media captions for photo or video content.
@@ -30,26 +31,6 @@ export async function generateSocialMediaCaption(input: GenerateSocialMediaCapti
   return generateSocialMediaCaptionFlow(input);
 }
 
-const prompt = ai.definePrompt({
-  name: 'generateSocialMediaCaptionPrompt',
-  input: { schema: GenerateSocialMediaCaptionInputSchema },
-  output: { schema: GenerateSocialMediaCaptionOutputSchema },
-  prompt: `You are an expert social media manager for AI influencers. Your task is to create a contextual caption for a {{{contentType}}} post.
-
-Details:
-Character: {{{characterName}}} (Age: {{{characterAge}}})
-Style: {{{characterStyle}}}
-Personality: {{{characterPersonality}}}
-Content Type: {{{contentType}}}
-Vibe/Action: {{{contentStyle}}}
-
-Task:
-- If it's a "photo" set, the caption should sound like an editorial or a collection of snapshots. Mention the "aesthetic" or "fit".
-- If it's a "video", make it sound like a dynamic moment, a vlog snippet, or a dance challenge.
-- Use the character's unique voice and tone.
-- Include 3-5 trending and relevant hashtags.`,
-});
-
 const generateSocialMediaCaptionFlow = ai.defineFlow(
   {
     name: 'generateSocialMediaCaptionFlow',
@@ -57,7 +38,15 @@ const generateSocialMediaCaptionFlow = ai.defineFlow(
     outputSchema: GenerateSocialMediaCaptionOutputSchema,
   },
   async (input) => {
-    const { output } = await prompt(input);
-    return output!;
+    // Mocking the AI response to ensure the app works without an API key
+    const mockCaptions = {
+      photo: `Editorial dump from the ${input.contentStyle} set. ✨ Channeling that ${input.characterStyle} energy today. What do we think of the fit?`,
+      video: `POV: You're witnessing the ${input.contentStyle} of the century. 🎬 Just a quick snippet from my day. Stay tuned for more!`,
+    };
+
+    return {
+      caption: mockCaptions[input.contentType],
+      hashtags: ['#AlterVibe', `#${input.characterName.replace(/\s+/g, '')}`, '#AIInfluencer', '#VirtualStyle'],
+    };
   }
 );
