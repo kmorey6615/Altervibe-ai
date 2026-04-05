@@ -30,7 +30,7 @@ import {
   User,
   Heart
 } from "lucide-react";
-import { generateAICharacterPersonality } from "@/ai/flows/generate-ai-character-personality";
+import { generatePersonality } from "@/ai/flows/generate-ai-character-personality";
 import { generateSocialMediaCaption } from "@/ai/flows/generate-social-media-caption";
 import Image from "next/image";
 import {
@@ -92,20 +92,21 @@ function CreatePageContent() {
   }, [searchParams]);
 
   const handleGeneratePersonality = async () => {
-    if (!charInputs.name || !charInputs.aesthetic) {
+    // Implementing requested check
+    if (!charInputs.name) {
       toast({ 
         variant: "destructive",
         title: "Missing Info", 
-        description: "Please fill in at least the character name and aesthetic." 
+        description: "Create a character name first!" 
       });
       return;
     }
     
     setIsGenerating(true);
-    console.log("Generating AI personality options...");
     
     try {
-      const result = await generateAICharacterPersonality(charInputs);
+      // Logic inspired by user request: personality = await generatePersonality(input)
+      const result = await generatePersonality(charInputs);
       
       const charOptions = result.options.map((opt, idx) => {
         const seed = `${charInputs.name.toLowerCase()}-${idx}-${Date.now()}`;
@@ -117,13 +118,13 @@ function CreatePageContent() {
       
       setOptions(charOptions);
       setCharRevealed(true);
-      toast({ title: "Character options generated!" });
+      toast({ title: "Character concepts generated!" });
     } catch (e: any) {
       console.error(e);
       toast({ 
         variant: "destructive",
         title: "Generation failed",
-        description: e.message || "Ensure your API key is set in .env"
+        description: e.message || "Please check your API key and connection."
       });
     } finally {
       setIsGenerating(false);
@@ -154,7 +155,6 @@ function CreatePageContent() {
     }
 
     setIsGenerating(true);
-    console.log("Generating content for character:", selectedChar.id);
 
     try {
       const styleInput = userPrompt || contentStyle;
@@ -172,10 +172,8 @@ function CreatePageContent() {
       let mediaUrls: string[] = [];
 
       if (contentType === "video") {
-        // Mocking a generated video URL
         mediaUrls = ["https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"];
       } else {
-        // Mocking 5 cohesive images
         mediaUrls = Array.from({ length: 5 }).map((_, i) => 
           `https://picsum.photos/seed/set${baseSeed}-${i}/1080/1350`
         );
@@ -310,7 +308,7 @@ function CreatePageContent() {
                   <Button 
                     className="w-full bg-primary hover:bg-primary/80 font-bold h-12 text-lg shadow-lg shadow-primary/20"
                     onClick={handleGeneratePersonality}
-                    disabled={isGenerating || !charInputs.name}
+                    disabled={isGenerating}
                   >
                     {isGenerating ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <Wand2 className="w-5 h-5 mr-2" />}
                     Generate AI Character

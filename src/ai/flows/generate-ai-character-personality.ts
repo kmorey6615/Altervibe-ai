@@ -1,75 +1,66 @@
 
 'use server';
 /**
- * @fileOverview A Genkit flow to generate detailed personality options for an AI character.
+ * @fileOverview A Genkit flow for generating two distinct AI character personality concepts.
  *
- * - generateAICharacterPersonality - A function that handles the AI character personality generation process.
- * - GenerateAICharacterPersonalityInput - The input type for the generateAICharacterPersonality function.
- * - GenerateAICharacterPersonalityOutput - The return type for the generateAICharacterPersonality function.
+ * - generatePersonality - A function that handles the generation process.
+ * - GeneratePersonalityInput - The input type for the function.
+ * - GeneratePersonalityOutput - The return type for the function.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { ai } from '@/ai/genkit';
+import { z } from 'genkit';
 
-const GenerateAICharacterPersonalityInputSchema = z.object({
-  name: z.string().describe('The name of the AI character.'),
-  gender: z.string().describe('The gender of the character (e.g., Male, Female, Non-binary).'),
-  ageRange: z.string().describe('The age range (e.g., 18-22, Late 20s).'),
-  outfitIdeas: z.string().describe('Style or outfit concepts.'),
-  aesthetic: z.string().describe('General aesthetic (e.g., Cyberpunk, Cottagecore).'),
-  vibe: z.string().describe('The personality vibe (e.g., Sassy, Intellectual, Energetic).'),
+const GeneratePersonalityInputSchema = z.object({
+  name: z.string().describe("The name of the AI character."),
+  gender: z.string().describe("The gender of the AI character."),
+  ageRange: z.string().describe("The age range of the AI character."),
+  outfitIdeas: z.string().describe("Specific outfit or clothing concepts."),
+  aesthetic: z.string().describe("The visual aesthetic or style."),
+  vibe: z.string().describe("The personality vibe or aura."),
 });
-export type GenerateAICharacterPersonalityInput = z.infer<
-  typeof GenerateAICharacterPersonalityInputSchema
->;
+export type GeneratePersonalityInput = z.infer<typeof GeneratePersonalityInputSchema>;
 
-const CharacterOptionSchema = z.object({
-  id: z.string(),
-  personalityDescription: z.string().describe('A detailed personality bio.'),
-  visualDescription: z.string().describe('A detailed visual description for the character.'),
-  catchphrase: z.string().describe('A signature phrase the character uses.'),
+const PersonalityOptionSchema = z.object({
+  id: z.string().describe("A unique identifier for this option."),
+  personalityDescription: z.string().describe("A detailed description of the character's personality and back-story."),
+  visualDescription: z.string().describe("A description of the character's signature look and lighting vibe."),
+  catchphrase: z.string().describe("A short, catchy phrase the character often uses."),
 });
 
-const GenerateAICharacterPersonalityOutputSchema = z.object({
-  options: z.array(CharacterOptionSchema).describe('An array of two distinct character personality options based on the inputs.'),
+const GeneratePersonalityOutputSchema = z.object({
+  options: z.array(PersonalityOptionSchema).length(2).describe("Exactly two distinct personality options for the user to choose from."),
 });
-export type GenerateAICharacterPersonalityOutput = z.infer<
-  typeof GenerateAICharacterPersonalityOutputSchema
->;
+export type GeneratePersonalityOutput = z.infer<typeof GeneratePersonalityOutputSchema>;
 
 const personalityPrompt = ai.definePrompt({
   name: 'personalityPrompt',
-  input: { schema: GenerateAICharacterPersonalityInputSchema },
-  output: { schema: GenerateAICharacterPersonalityOutputSchema },
-  prompt: `You are a creative character designer for an AI influencer platform called AlterVibe. 
-  Your goal is to create two distinct, high-engagement personality options for a new AI character.
+  input: { schema: GeneratePersonalityInputSchema },
+  output: { schema: GeneratePersonalityOutputSchema },
+  prompt: `You are a creative director for a top AI Influencer agency.
   
-  Character Name: {{name}}
+  User Inputs:
+  Name: {{name}}
   Gender: {{gender}}
   Age Range: {{ageRange}}
-  Outfit Ideas: {{outfitIdeas}}
+  Outfit Concepts: {{outfitIdeas}}
   Aesthetic: {{aesthetic}}
   Vibe: {{vibe}}
   
-  Generate two unique concepts that feel like modern social media influencers. 
-  For each option:
-  1. Create a deep, interesting personality description.
-  2. Provide a visual description that a photographer or image generator could use.
-  3. Give them a catchy signature phrase.
-  Ensure the IDs are 'option-1' and 'option-2'.`,
+  Generate exactly TWO distinct, high-concept personality and visual profiles for this character. 
+  Each profile should feel unique even if they share the same base inputs.
+  Make them sound trendy, engaging, and fit for short-form video platforms like TikTok.`,
 });
 
-export async function generateAICharacterPersonality(
-  input: GenerateAICharacterPersonalityInput
-): Promise<GenerateAICharacterPersonalityOutput> {
-  return generateAICharacterPersonalityFlow(input);
+export async function generatePersonality(input: GeneratePersonalityInput): Promise<GeneratePersonalityOutput> {
+  return generatePersonalityFlow(input);
 }
 
-const generateAICharacterPersonalityFlow = ai.defineFlow(
+const generatePersonalityFlow = ai.defineFlow(
   {
-    name: 'generateAICharacterPersonalityFlow',
-    inputSchema: GenerateAICharacterPersonalityInputSchema,
-    outputSchema: GenerateAICharacterPersonalityOutputSchema,
+    name: 'generatePersonalityFlow',
+    inputSchema: GeneratePersonalityInputSchema,
+    outputSchema: GeneratePersonalityOutputSchema,
   },
   async (input) => {
     const { output } = await personalityPrompt(input);
