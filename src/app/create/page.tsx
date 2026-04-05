@@ -54,10 +54,8 @@ function CreatePageContent() {
   const [charRevealed, setCharRevealed] = useState(false);
   const [savedChars, setSavedChars] = useState<CharacterOption[]>([]);
   
-  // Single character state for handling the generation snippet logic
-  const [character, setCharacter] = useState<any>(null);
+  const [character, setCharacter] = useState<CharacterOption | null>(null);
 
-  // Character Input State
   const [charInputs, setCharInputs] = useState({
     name: "",
     gender: "female",
@@ -67,10 +65,8 @@ function CreatePageContent() {
     vibe: ""
   });
 
-  // Generated Options
   const [options, setOptions] = useState<CharacterOption[]>([]);
 
-  // Result State for Workshop
   const [generatedResult, setGeneratedResult] = useState<{
     caption: string;
     hashtags: string[];
@@ -78,7 +74,6 @@ function CreatePageContent() {
     type: "photo" | "video";
   } | null>(null);
 
-  // Workshop Selection
   const [selectedChar, setSelectedChar] = useState<CharacterOption | null>(null);
   const [contentType, setContentType] = useState<"video" | "photo">("video");
   const [contentStyle, setContentStyle] = useState("viral dance");
@@ -104,7 +99,6 @@ function CreatePageContent() {
     setIsGenerating(true);
     
     try {
-      // Logic for the requested handleGenerate style
       const result = await generatePersonality(charInputs);
       
       const charOptions = result.options.map((opt, idx) => {
@@ -137,7 +131,6 @@ function CreatePageContent() {
     }
     setSavedChars([...savedChars, option]);
     setSelectedChar(option);
-    // Sync with the 'character' state for the requested snippet
     setCharacter(option);
     toast({ 
       title: "Saved!",
@@ -215,7 +208,7 @@ function CreatePageContent() {
     <main className="min-h-screen bg-black pb-24 pt-8 px-4 overflow-y-auto">
       <div className="max-w-xl mx-auto space-y-8">
         <header className="text-center space-y-2">
-          <h1 className="text-4xl font-black tracking-tighter text-white uppercase italic">
+          <h1 className="text-4xl font-black tracking-tighter text-white uppercase italic" onClick={() => console.log("Character State:", character)}>
             AlterVibe <span className="text-primary">Studio</span>
           </h1>
           <p className="text-muted-foreground text-sm">Design and direct your AI creations</p>
@@ -411,7 +404,6 @@ function CreatePageContent() {
                     </div>
                   </div>
 
-                  {/* Requested UI Snippet */}
                   {character?.personality && (
                     <div className="p-4 bg-black/40 rounded-xl border border-white/10 animate-in fade-in duration-300">
                       <h3 className="text-sm font-bold text-primary mb-1 uppercase tracking-wider">Personality:</h3>
