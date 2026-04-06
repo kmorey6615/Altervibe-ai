@@ -42,7 +42,8 @@ import {
   Layers,
   Rocket,
   Upload,
-  X
+  X,
+  Type
 } from "lucide-react";
 import { generatePersonality } from "@/ai/flows/generate-ai-character-personality";
 import { generateSocialMediaCaption } from "@/ai/flows/generate-social-media-caption";
@@ -103,6 +104,7 @@ function CreatePageContent() {
   const [productInputs, setProductInputs] = useState({
     productName: "",
     category: "Skincare",
+    customCategory: "",
     description: "",
     targetAudience: "Young Adults",
     platform: "Instagram" as any,
@@ -186,10 +188,21 @@ function CreatePageContent() {
       toast({ variant: "destructive", title: "Missing Info", description: "Enter a product name." });
       return;
     }
+    
+    const finalCategory = productInputs.category === "Other" 
+      ? productInputs.customCategory 
+      : productInputs.category;
+
+    if (productInputs.category === "Other" && !productInputs.customCategory) {
+      toast({ variant: "destructive", title: "Missing Category", description: "Please enter a custom category name." });
+      return;
+    }
+
     setIsGenerating(true);
     try {
       const result = await generateProductMarketing({
         ...productInputs,
+        category: finalCategory,
         productImage: productInputs.productImage || undefined
       });
       const seed = Math.floor(Math.random() * 10000);
@@ -479,12 +492,12 @@ function CreatePageContent() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label className="text-zinc-400">Product Name</Label>
                     <input 
                       placeholder="e.g. Hydro-Mist 500" 
-                      className="w-full bg-black border border-white/10 rounded-md p-2 text-sm"
+                      className="w-full bg-black border border-white/10 rounded-md p-2 text-sm text-white"
                       value={productInputs.productName}
                       onChange={(e) => setProductInputs({...productInputs, productName: e.target.value})}
                     />
@@ -492,31 +505,54 @@ function CreatePageContent() {
                   <div className="space-y-2">
                     <Label className="text-zinc-400">Category</Label>
                     <Select value={productInputs.category} onValueChange={(v) => setProductInputs({...productInputs, category: v})}>
-                      <SelectTrigger className="bg-black border-white/10"><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="bg-black border-white/10 text-white"><SelectValue /></SelectTrigger>
                       <SelectContent className="bg-zinc-900 border-white/10">
                         <SelectItem value="Skincare">Skincare</SelectItem>
-                        <SelectItem value="Tech">Tech Accessories</SelectItem>
-                        <SelectItem value="Fashion">Apparel</SelectItem>
-                        <SelectItem value="Home">Smart Home</SelectItem>
+                        <SelectItem value="Beauty">Beauty & Cosmetics</SelectItem>
+                        <SelectItem value="Tech Accessories">Tech Accessories</SelectItem>
+                        <SelectItem value="Apparel">Apparel & Fashion</SelectItem>
+                        <SelectItem value="Smart Home">Smart Home</SelectItem>
+                        <SelectItem value="Fitness">Fitness & Wellness</SelectItem>
+                        <SelectItem value="Food & Beverage">Food & Beverage</SelectItem>
+                        <SelectItem value="Gaming">Gaming Gear</SelectItem>
+                        <SelectItem value="Pet Care">Pet Care</SelectItem>
+                        <SelectItem value="Travel">Travel & Lifestyle</SelectItem>
+                        <SelectItem value="Education">Education & Courses</SelectItem>
+                        <SelectItem value="Other">Other (Custom Category)</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                 </div>
+
+                {productInputs.category === "Other" && (
+                  <div className="space-y-2 animate-in slide-in-from-top-2 duration-300">
+                    <Label className="text-zinc-400 flex items-center gap-2">
+                      <Type className="w-4 h-4 text-accent" /> Custom Category Name
+                    </Label>
+                    <input 
+                      placeholder="e.g. Sustainable Jewelry" 
+                      className="w-full bg-black border border-accent/30 rounded-md p-2 text-sm text-white focus:ring-accent"
+                      value={productInputs.customCategory}
+                      onChange={(e) => setProductInputs({...productInputs, customCategory: e.target.value})}
+                    />
+                  </div>
+                )}
+
                 <div className="space-y-2">
                   <Label className="text-zinc-400">Marketing Hook / Description</Label>
                   <textarea 
                     placeholder="What makes this product special?" 
-                    className="w-full bg-black border border-white/10 rounded-md p-3 text-sm min-h-[80px]"
+                    className="w-full bg-black border border-white/10 rounded-md p-3 text-sm min-h-[80px] text-white"
                     value={productInputs.description}
                     onChange={(e) => setProductInputs({...productInputs, description: e.target.value})}
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                    <div className="space-y-2">
                     <Label className="text-zinc-400">Target Audience</Label>
                     <input 
                       placeholder="e.g. Gen Z Creators" 
-                      className="w-full bg-black border border-white/10 rounded-md p-2 text-sm"
+                      className="w-full bg-black border border-white/10 rounded-md p-2 text-sm text-white"
                       value={productInputs.targetAudience}
                       onChange={(e) => setProductInputs({...productInputs, targetAudience: e.target.value})}
                     />
@@ -524,7 +560,7 @@ function CreatePageContent() {
                   <div className="space-y-2">
                     <Label className="text-zinc-400">Format</Label>
                     <Select value={contentType} onValueChange={(v) => setContentType(v as any)}>
-                      <SelectTrigger className="bg-black border-white/10"><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="bg-black border-white/10 text-white"><SelectValue /></SelectTrigger>
                       <SelectContent className="bg-zinc-900 border-white/10">
                         <SelectItem value="video">Promotional Video</SelectItem>
                         <SelectItem value="photo">Ad Photo Set</SelectItem>
