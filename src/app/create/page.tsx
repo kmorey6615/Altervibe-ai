@@ -12,6 +12,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
 import { 
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogTrigger,
+  DialogFooter
+} from "@/components/ui/dialog";
+import { 
   Loader2, 
   Wand2, 
   Copy, 
@@ -22,7 +31,13 @@ import {
   Video as VideoIcon,
   Zap,
   RefreshCcw,
-  Save
+  Save,
+  Download,
+  Share2,
+  Twitter,
+  Facebook,
+  Instagram,
+  Send
 } from "lucide-react";
 import { generatePersonality } from "@/ai/flows/generate-ai-character-personality";
 import { generateSocialMediaCaption } from "@/ai/flows/generate-social-media-caption";
@@ -47,12 +62,20 @@ type CharacterOption = {
   aesthetic?: string;
 };
 
+type GeneratedResult = {
+  caption: string;
+  hashtags: string[];
+  mediaUrls: string[];
+  type: "photo" | "video";
+};
+
 function CreatePageContent() {
   const { toast } = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [step, setStep] = useState<"character" | "studio">("character");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isPosting, setIsPosting] = useState(false);
   const [charRevealed, setCharRevealed] = useState(false);
   const [savedChars, setSavedChars] = useState<CharacterOption[]>([]);
   
@@ -69,18 +92,12 @@ function CreatePageContent() {
 
   const [options, setOptions] = useState<CharacterOption[]>([]);
 
-  const [generatedResult, setGeneratedResult] = useState<{
-    caption: string;
-    hashtags: string[];
-    mediaUrls: string[];
-    type: "photo" | "video";
-  } | null>(null);
+  const [generatedResult, setGeneratedResult] = useState<GeneratedResult | null>(null);
 
   const [contentType, setContentType] = useState<"video" | "photo">("video");
   const [contentStyle, setContentStyle] = useState("viral dance");
   const [userPrompt, setUserPrompt] = useState("");
 
-  // Sync with Firestore roster
   useEffect(() => {
     const q = query(collection(db, "characters"), orderBy("createdAt", "desc"));
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -93,7 +110,6 @@ function CreatePageContent() {
     return () => unsubscribe();
   }, []);
 
-  // Handle URL params for direct creation
   useEffect(() => {
     const charId = searchParams.get("charId");
     const type = searchParams.get("type");
@@ -272,6 +288,21 @@ function CreatePageContent() {
     }
   };
 
+  const downloadToDevice = () => {
+    if (!generatedResult) return;
+    
+    // In a real browser environment, we'd trigger downloads for each URL
+    // For this prototype, we'll simulate the download intent
+    generatedResult.mediaUrls.forEach((url, i) => {
+      console.log(`Downloading ${url} as altervibe_${generatedResult.type}_${i}.mp4/jpg`);
+    });
+    
+    toast({
+      title: "Download Started",
+      description: `Saving ${generatedResult.mediaUrls.length} file(s) to your device.`
+    });
+  };
+
   const copyCaption = () => {
     if (generatedResult) {
       navigator.clipboard.writeText(`${generatedResult.caption}\n\n${generatedResult.hashtags.join(" ")}`);
@@ -279,8 +310,14 @@ function CreatePageContent() {
     }
   };
 
+  const TikTokIcon = () => (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+      <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.17-2.89-.6-4.13-1.47-.13-.08-.25-.17-.38-.25V14.5c.02 2.22-.73 4.48-2.3 6.08-1.58 1.61-3.9 2.39-6.13 2.14-2.22-.24-4.29-1.49-5.49-3.38-1.19-1.89-1.39-4.27-.55-6.27.83-2 2.64-3.51 4.74-4.04 1.25-.32 2.57-.3 3.82.04V13.3c-.76-.23-1.61-.25-2.38-.05-.77.2-1.44.69-1.9 1.35-.45.66-.55 1.48-.3 2.25.26.77.85 1.39 1.58 1.72.73.33 1.59.33 2.32.02.73-.31 1.28-.9 1.52-1.64.12-.37.16-.77.15-1.16V0h-.01z"/>
+    </svg>
+  );
+
   return (
-    <main className="min-h-screen bg-black pb-24 pt-8 px-4 overflow-y-auto">
+    <main className="min-h-screen bg-background pb-24 pt-8 px-4 overflow-y-auto">
       <div className="max-w-xl mx-auto space-y-8">
         <header className="text-center space-y-2">
           <h1 className="text-4xl font-black tracking-tighter text-white uppercase italic">
@@ -299,25 +336,25 @@ function CreatePageContent() {
             {!charRevealed ? (
               <Card className="bg-zinc-900 border-white/5 shadow-2xl">
                 <CardHeader>
-                  <CardTitle className="text-xl">Identity Creator</CardTitle>
+                  <CardTitle className="text-xl text-white">Identity Creator</CardTitle>
                   <CardDescription>Define the personality of your next AI influencer.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="name">Name</Label>
+                      <Label htmlFor="name" className="text-zinc-400">Name</Label>
                       <input 
                         id="name" 
                         placeholder="Luna Spark" 
-                        className="flex h-10 w-full rounded-md border border-white/10 bg-black px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="flex h-10 w-full rounded-md border border-white/10 bg-black px-3 py-2 text-sm text-white placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                         value={charInputs.name}
                         onChange={(e) => setCharInputs({...charInputs, name: e.target.value})}
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="gender">Gender</Label>
+                      <Label htmlFor="gender" className="text-zinc-400">Gender</Label>
                       <Select value={charInputs.gender} onValueChange={(v) => setCharInputs({...charInputs, gender: v})}>
-                        <SelectTrigger className="bg-black border-white/10">
+                        <SelectTrigger className="bg-black border-white/10 text-white">
                           <SelectValue placeholder="Gender" />
                         </SelectTrigger>
                         <SelectContent className="bg-zinc-900 border-white/10">
@@ -331,21 +368,21 @@ function CreatePageContent() {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="age">Age Range</Label>
+                      <Label htmlFor="age" className="text-zinc-400">Age Range</Label>
                       <input 
                         id="age" 
                         placeholder="e.g. 18-24" 
-                        className="flex h-10 w-full rounded-md border border-white/10 bg-black px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="flex h-10 w-full rounded-md border border-white/10 bg-black px-3 py-2 text-sm text-white placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                         value={charInputs.ageRange}
                         onChange={(e) => setCharInputs({...charInputs, ageRange: e.target.value})}
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="vibe">Vibe</Label>
+                      <Label htmlFor="vibe" className="text-zinc-400">Vibe</Label>
                       <input 
                         id="vibe" 
                         placeholder="e.g. Sassy, Intellectual" 
-                        className="flex h-10 w-full rounded-md border border-white/10 bg-black px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="flex h-10 w-full rounded-md border border-white/10 bg-black px-3 py-2 text-sm text-white placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                         value={charInputs.vibe}
                         onChange={(e) => setCharInputs({...charInputs, vibe: e.target.value})}
                       />
@@ -353,22 +390,22 @@ function CreatePageContent() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="aesthetic">Aesthetic Style</Label>
+                    <Label htmlFor="aesthetic" className="text-zinc-400">Aesthetic Style</Label>
                     <input 
                       id="aesthetic" 
                       placeholder="e.g. Y2K Cyberpunk, Soft Minimalism" 
-                      className="flex h-10 w-full rounded-md border border-white/10 bg-black px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="flex h-10 w-full rounded-md border border-white/10 bg-black px-3 py-2 text-sm text-white placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                       value={charInputs.aesthetic}
                       onChange={(e) => setCharInputs({...charInputs, aesthetic: e.target.value})}
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="outfits">Outfit Concepts</Label>
+                    <Label htmlFor="outfits" className="text-zinc-400">Outfit Concepts</Label>
                     <textarea 
                       id="outfits" 
                       placeholder="Chrome jackets, holographic boots, oversized streetwear..." 
-                      className="flex min-h-[80px] w-full rounded-md border border-white/10 bg-black px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="flex min-h-[80px] w-full rounded-md border border-white/10 bg-black px-3 py-2 text-sm text-white placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                       value={charInputs.outfitIdeas}
                       onChange={(e) => setCharInputs({...charInputs, outfitIdeas: e.target.value})}
                     />
@@ -387,7 +424,7 @@ function CreatePageContent() {
             ) : (
               <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-xl font-bold flex items-center gap-2">
+                  <h2 className="text-xl font-bold flex items-center gap-2 text-white">
                     <Sparkles className="w-5 h-5 text-accent" />
                     Identity Options
                   </h2>
@@ -403,11 +440,11 @@ function CreatePageContent() {
                       <div className="aspect-[4/5] relative">
                         <Image src={opt.imageUrl} alt="AI Character Preview" fill className="object-cover" />
                         <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent" />
-                        <div className="absolute top-4 left-4 bg-primary px-3 py-1 rounded-full text-[10px] font-black italic shadow-lg">
+                        <div className="absolute top-4 left-4 bg-primary px-3 py-1 rounded-full text-[10px] font-black italic shadow-lg text-white">
                           CONCEPT {index + 1}
                         </div>
                         <div className="absolute bottom-6 left-6 right-6">
-                          <h3 className="text-2xl font-black uppercase italic drop-shadow-xl">{charInputs.name}</h3>
+                          <h3 className="text-2xl font-black uppercase italic drop-shadow-xl text-white">{charInputs.name}</h3>
                           <p className="text-accent text-xs font-bold uppercase tracking-widest drop-shadow-lg">"{opt.catchphrase}"</p>
                         </div>
                       </div>
@@ -437,7 +474,7 @@ function CreatePageContent() {
                 </div>
 
                 <Button 
-                  className="w-full bg-primary h-14 font-black uppercase italic text-lg shadow-2xl shadow-primary/30"
+                  className="w-full bg-primary h-14 font-black uppercase italic text-lg shadow-2xl shadow-primary/30 text-white"
                   onClick={() => setStep("studio")}
                   disabled={savedChars.length === 0}
                 >
@@ -452,7 +489,7 @@ function CreatePageContent() {
             {!generatedResult ? (
               <Card className="bg-zinc-900 border-white/5">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
+                  <CardTitle className="flex items-center gap-2 text-white">
                     <Sparkles className="w-5 h-5 text-accent" />
                     Workshop
                   </CardTitle>
@@ -460,7 +497,7 @@ function CreatePageContent() {
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="space-y-3">
-                    <Label>Your Roster</Label>
+                    <Label className="text-zinc-400">Your Roster</Label>
                     <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
                       {savedChars.map((char) => (
                         <button 
@@ -485,7 +522,7 @@ function CreatePageContent() {
                   )}
 
                   <div className="space-y-3">
-                    <Label>Format</Label>
+                    <Label className="text-zinc-400">Format</Label>
                     <RadioGroup 
                       value={contentType} 
                       onValueChange={(v) => setContentType(v as any)}
@@ -495,7 +532,7 @@ function CreatePageContent() {
                         <RadioGroupItem value="video" id="v-studio" className="peer sr-only" />
                         <Label
                           htmlFor="v-studio"
-                          className="flex flex-col items-center justify-between rounded-xl border-2 border-muted bg-black/40 p-5 hover:bg-zinc-800 peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/10 transition-all"
+                          className="flex flex-col items-center justify-between rounded-xl border-2 border-muted bg-black/40 p-5 hover:bg-zinc-800 peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/10 transition-all text-white"
                         >
                           <VideoIcon className="mb-2 h-7 w-7 text-primary" />
                           <span className="font-bold">AI Video</span>
@@ -505,7 +542,7 @@ function CreatePageContent() {
                         <RadioGroupItem value="photo" id="p-studio" className="peer sr-only" />
                         <Label
                           htmlFor="p-studio"
-                          className="flex flex-col items-center justify-between rounded-xl border-2 border-muted bg-black/40 p-5 hover:bg-zinc-800 peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/10 transition-all"
+                          className="flex flex-col items-center justify-between rounded-xl border-2 border-muted bg-black/40 p-5 hover:bg-zinc-800 peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/10 transition-all text-white"
                         >
                           <ImageIcon className="mb-2 h-7 w-7 text-primary" />
                           <span className="font-bold">Photo Set</span>
@@ -515,12 +552,12 @@ function CreatePageContent() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label className="flex items-center gap-2">
+                    <Label className="flex items-center gap-2 text-zinc-400">
                       <Zap className="w-3 h-3 text-accent" />
                       Viral Vibe
                     </Label>
                     <Select value={contentStyle} onValueChange={setContentStyle}>
-                      <SelectTrigger className="bg-black border-white/10 h-11">
+                      <SelectTrigger className="bg-black border-white/10 h-11 text-white">
                         <SelectValue placeholder="Select a trend" />
                       </SelectTrigger>
                       <SelectContent className="bg-zinc-900 border-white/10">
@@ -544,13 +581,13 @@ function CreatePageContent() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label className="flex items-center gap-2">
+                    <Label className="flex items-center gap-2 text-zinc-400">
                       <Wand2 className="w-3 h-3 text-primary" />
                       Director's Notes (Prompt)
                     </Label>
                     <textarea 
                       placeholder="e.g. Walking through a rainy neon marketplace, wearing chrome streetwear..." 
-                      className="flex min-h-[100px] w-full rounded-md border border-white/10 bg-black px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="flex min-h-[100px] w-full rounded-md border border-white/10 bg-black px-3 py-2 text-sm text-white placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                       value={userPrompt}
                       onChange={(e) => setUserPrompt(e.target.value)}
                     />
@@ -589,15 +626,15 @@ function CreatePageContent() {
                           <CarouselItem key={index}>
                             <div className="relative aspect-[4/5] rounded-3xl overflow-hidden border-4 border-primary shadow-2xl shadow-primary/20">
                               <Image src={url} alt={`Generated Photo ${index + 1}`} fill className="object-cover" />
-                              <div className="absolute top-4 right-4 bg-primary/90 backdrop-blur-md px-4 py-1.5 rounded-full text-[12px] font-black italic shadow-lg">
+                              <div className="absolute top-4 right-4 bg-primary/90 backdrop-blur-md px-4 py-1.5 rounded-full text-[12px] font-black italic shadow-lg text-white">
                                 {index + 1} / 5
                               </div>
                             </div>
                           </CarouselItem>
                         ))}
                       </CarouselContent>
-                      <CarouselPrevious className="left-2 bg-black/60 border-none h-10 w-10 hover:bg-primary transition-all" />
-                      <CarouselNext className="right-2 bg-black/60 border-none h-10 w-10 hover:bg-primary transition-all" />
+                      <CarouselPrevious className="left-2 bg-black/60 border-none h-10 w-10 hover:bg-primary transition-all text-white" />
+                      <CarouselNext className="right-2 bg-black/60 border-none h-10 w-10 hover:bg-primary transition-all text-white" />
                     </Carousel>
                   )}
                 </div>
@@ -619,17 +656,86 @@ function CreatePageContent() {
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
-                      <Button variant="outline" className="border-white/10 bg-black h-12 rounded-xl" onClick={copyCaption}>
+                      <Button variant="outline" className="border-white/10 bg-black h-12 rounded-xl text-white" onClick={copyCaption}>
                         <Copy className="w-4 h-4 mr-2" /> Copy Text
                       </Button>
-                      <Button variant="outline" className="border-white/10 bg-black h-12 rounded-xl" onClick={() => setGeneratedResult(null)}>
+                      <Button variant="outline" className="border-white/10 bg-black h-12 rounded-xl text-white" onClick={() => setGeneratedResult(null)}>
                         <RefreshCcw className="w-4 h-4 mr-2" /> Redo Render
                       </Button>
                     </div>
 
-                    <Button className="w-full bg-primary font-black h-14 uppercase italic text-lg rounded-xl shadow-xl shadow-primary/20" onClick={finalizeAndPost}>
-                      <CheckCircle2 className="w-6 h-6 mr-2" /> Finalize & Post
-                    </Button>
+                    <div className="flex flex-col gap-3">
+                      <Button 
+                        className="w-full bg-primary font-black h-14 uppercase italic text-lg rounded-xl shadow-xl shadow-primary/20 text-white" 
+                        onClick={finalizeAndPost}
+                      >
+                        <CheckCircle2 className="w-6 h-6 mr-2" /> Finalize & Post
+                      </Button>
+                      
+                      <div className="grid grid-cols-2 gap-3">
+                        <Button 
+                          variant="outline" 
+                          className="h-12 rounded-xl border-primary/20 bg-primary/5 text-primary hover:bg-primary/10"
+                          onClick={downloadToDevice}
+                        >
+                          <Download className="w-4 h-4 mr-2" /> Save to Device
+                        </Button>
+                        
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button 
+                              variant="outline" 
+                              className="h-12 rounded-xl border-accent/20 bg-accent/5 text-accent hover:bg-accent/10"
+                            >
+                              <Share2 className="w-4 h-4 mr-2" /> Direct Post
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="bg-zinc-900 border-white/10 text-white">
+                            <DialogHeader>
+                              <DialogTitle className="text-xl font-black uppercase italic">Social Sync</DialogTitle>
+                              <DialogDescription className="text-zinc-400">
+                                Connect your accounts to post {selectedChar?.name}'s content directly.
+                              </DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-4 py-4">
+                              <div className="flex items-center justify-between p-3 rounded-xl bg-black border border-white/5">
+                                <div className="flex items-center gap-3">
+                                  <TikTokIcon />
+                                  <span className="font-bold">TikTok</span>
+                                </div>
+                                <Button size="sm" variant="outline" className="text-[10px] font-black uppercase border-primary/40 text-primary">Post Now</Button>
+                              </div>
+                              <div className="flex items-center justify-between p-3 rounded-xl bg-black border border-white/5">
+                                <div className="flex items-center gap-3">
+                                  <Instagram className="w-6 h-6 text-pink-500" />
+                                  <span className="font-bold">Instagram Reels</span>
+                                </div>
+                                <Button size="sm" variant="outline" className="text-[10px] font-black uppercase border-primary/40 text-primary">Post Now</Button>
+                              </div>
+                              <div className="flex items-center justify-between p-3 rounded-xl bg-black border border-white/5">
+                                <div className="flex items-center gap-3">
+                                  <Twitter className="w-6 h-6 text-blue-400" />
+                                  <span className="font-bold">X (Twitter)</span>
+                                </div>
+                                <Button size="sm" variant="ghost" className="text-[10px] font-black uppercase text-zinc-500">Connect</Button>
+                              </div>
+                              <div className="flex items-center justify-between p-3 rounded-xl bg-black border border-white/5">
+                                <div className="flex items-center gap-3">
+                                  <Facebook className="w-6 h-6 text-blue-600" />
+                                  <span className="font-bold">Facebook</span>
+                                </div>
+                                <Button size="sm" variant="ghost" className="text-[10px] font-black uppercase text-zinc-500">Connect</Button>
+                              </div>
+                            </div>
+                            <DialogFooter>
+                              <Button className="w-full bg-primary font-black uppercase italic h-12">
+                                <Send className="w-4 h-4 mr-2" /> Sync All Platforms
+                              </Button>
+                            </DialogFooter>
+                          </DialogContent>
+                        </Dialog>
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
               </div>
