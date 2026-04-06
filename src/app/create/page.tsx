@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
@@ -37,10 +36,15 @@ import {
   Twitter,
   Facebook,
   Instagram,
-  Send
+  Send,
+  ShoppingBag,
+  UserCircle2,
+  Layers,
+  Rocket
 } from "lucide-react";
 import { generatePersonality } from "@/ai/flows/generate-ai-character-personality";
 import { generateSocialMediaCaption } from "@/ai/flows/generate-social-media-caption";
+import { generateProductMarketing } from "@/ai/flows/generate-product-marketing";
 import Image from "next/image";
 import {
   Carousel,
@@ -67,20 +71,23 @@ type GeneratedResult = {
   hashtags: string[];
   mediaUrls: string[];
   type: "photo" | "video";
+  headline?: string;
+  hooks?: string[];
+  isProduct?: boolean;
 };
 
 function CreatePageContent() {
   const { toast } = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [mode, setMode] = useState<"influencer" | "marketing">("influencer");
   const [step, setStep] = useState<"character" | "studio">("character");
   const [isGenerating, setIsGenerating] = useState(false);
-  const [isPosting, setIsPosting] = useState(false);
   const [charRevealed, setCharRevealed] = useState(false);
   const [savedChars, setSavedChars] = useState<CharacterOption[]>([]);
-  
   const [selectedChar, setSelectedChar] = useState<CharacterOption | null>(null);
 
+  // Influencer Inputs
   const [charInputs, setCharInputs] = useState({
     name: "",
     gender: "female",
@@ -90,10 +97,17 @@ function CreatePageContent() {
     vibe: ""
   });
 
+  // Product Inputs
+  const [productInputs, setProductInputs] = useState({
+    productName: "",
+    category: "Skincare",
+    description: "",
+    targetAudience: "Young Adults",
+    platform: "Instagram" as any
+  });
+
   const [options, setOptions] = useState<CharacterOption[]>([]);
-
   const [generatedResult, setGeneratedResult] = useState<GeneratedResult | null>(null);
-
   const [contentType, setContentType] = useState<"video" | "photo">("video");
   const [contentStyle, setContentStyle] = useState("viral dance");
   const [userPrompt, setUserPrompt] = useState("");
@@ -112,201 +126,122 @@ function CreatePageContent() {
 
   useEffect(() => {
     const charId = searchParams.get("charId");
-    const type = searchParams.get("type");
-    const style = searchParams.get("style");
-
     if (charId) {
       const fetchChar = async () => {
         const docRef = doc(db, "characters", charId);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
-          const charData = { id: docSnap.id, ...docSnap.data() } as CharacterOption;
-          setSelectedChar(charData);
+          setSelectedChar({ id: docSnap.id, ...docSnap.data() } as CharacterOption);
           setStep("studio");
+          setMode("influencer");
         }
       };
       fetchChar();
     }
-
-    if (type === "video" || type === "photo") {
-      setContentType(type);
-    }
-
-    if (style) {
-      setContentStyle(style);
-    }
   }, [searchParams]);
 
-  const handleGenerate = async () => {
+  const handleGenerateChar = async () => {
     if (!charInputs.name) {
-      toast({ 
-        variant: "destructive",
-        title: "Missing Info", 
-        description: "Give your character a name first!" 
-      });
+      toast({ variant: "destructive", title: "Missing Info", description: "Give your character a name first!" });
       return;
     }
-    
     setIsGenerating(true);
-    
     try {
       const result = await generatePersonality(charInputs);
-      
-      const charOptions = result.options.map((opt, idx) => {
-        const seed = `${charInputs.name.toLowerCase()}-${idx}-${Date.now()}`;
-        return {
-          ...opt,
-          imageUrl: `https://picsum.photos/seed/${seed}/600/800`
-        };
-      });
-      
+      const charOptions = result.options.map((opt, idx) => ({
+        ...opt,
+        imageUrl: `https://picsum.photos/seed/${charInputs.name.toLowerCase()}-${idx}-${Date.now()}/600/800`
+      }));
       setOptions(charOptions);
       setCharRevealed(true);
       toast({ title: "Character concepts generated!" });
     } catch (e: any) {
-      console.error(e);
-      toast({ 
-        variant: "destructive",
-        title: "Generation failed",
-        description: e.message || "Please check your API key and connection."
-      });
+      toast({ variant: "destructive", title: "Generation failed", description: e.message });
     } finally {
       setIsGenerating(false);
     }
   };
 
-  const handleSaveCharacter = async (option: CharacterOption) => {
+  const handleGenerateMarketing = async () => {
+    if (!productInputs.productName) {
+      toast({ variant: "destructive", title: "Missing Info", description: "Enter a product name." });
+      return;
+    }
+    setIsGenerating(true);
     try {
-      await addDoc(collection(db, "characters"), {
-        name: charInputs.name || option.name,
-        personality: option.personality,
-        visualDescription: option.visualDescription,
-        catchphrase: option.catchphrase,
-        imageUrl: option.imageUrl,
-        aesthetic: charInputs.aesthetic || option.aesthetic || "Aesthetic",
-        createdAt: new Date().toISOString()
+      const result = await generateProductMarketing(productInputs);
+      const seed = Math.floor(Math.random() * 10000);
+      const mediaUrls = contentType === "video" 
+        ? ["https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4"]
+        : Array.from({ length: 4 }).map((_, i) => `https://picsum.photos/seed/prod-${seed}-${i}/1080/1080`);
+
+      setGeneratedResult({
+        headline: result.headline,
+        caption: result.adCopy,
+        hooks: result.hooks,
+        hashtags: result.hashtags,
+        mediaUrls: mediaUrls,
+        type: contentType,
+        isProduct: true
       });
-      
-      setSelectedChar(option);
-      toast({ 
-        title: "Saved!",
-        description: `${charInputs.name || option.name} is now in your roster.`
-      });
-    } catch (error) {
-      console.error("Error saving character:", error);
-      toast({
-        variant: "destructive",
-        title: "Save failed",
-        description: "Could not save to the cloud."
-      });
+      toast({ title: "Marketing campaign ready!" });
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Marketing generation failed", description: e.message });
+    } finally {
+      setIsGenerating(false);
     }
   };
 
-  const handleGenerateContent = async () => {
+  const handleGenerateInfluencerContent = async () => {
     if (!selectedChar) {
-      toast({ 
-        variant: "destructive",
-        title: "No Character Selected", 
-        description: "Select a character from your roster first." 
-      });
+      toast({ variant: "destructive", title: "No Character", description: "Select a character first." });
       return;
     }
-
     setIsGenerating(true);
-
     try {
-      const styleInput = userPrompt || contentStyle;
-      
       const result = await generateSocialMediaCaption({
         characterName: selectedChar.name || charInputs.name,
-        characterAge: 20,
+        characterAge: 21,
         characterStyle: selectedChar.aesthetic || charInputs.aesthetic,
         characterPersonality: selectedChar.personality,
         contentType: contentType,
-        contentStyle: styleInput
+        contentStyle: userPrompt || contentStyle
       });
-      
       const baseSeed = Math.floor(Math.random() * 10000);
-      let mediaUrls: string[] = [];
-
-      if (contentType === "video") {
-        mediaUrls = ["https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"];
-      } else {
-        mediaUrls = Array.from({ length: 5 }).map((_, i) => 
-          `https://picsum.photos/seed/set${baseSeed}-${i}/1080/1350`
-        );
-      }
+      const mediaUrls = contentType === "video" 
+        ? ["https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"]
+        : Array.from({ length: 5 }).map((_, i) => `https://picsum.photos/seed/set${baseSeed}-${i}/1080/1350`);
 
       setGeneratedResult({
         caption: result.caption,
         hashtags: result.hashtags,
         mediaUrls: mediaUrls,
-        type: contentType
-      });
-      
-      toast({ 
-        title: contentType === 'photo' 
-          ? 'Photo set generated!' 
-          : 'Video generated!' 
+        type: contentType,
+        isProduct: false
       });
     } catch (e: any) {
-      console.error(e);
-      toast({ 
-        variant: "destructive",
-        title: "Content generation failed",
-        description: e.message || "Please check your connection."
-      });
+      toast({ variant: "destructive", title: "Content failed", description: e.message });
     } finally {
       setIsGenerating(false);
     }
   };
 
   const finalizeAndPost = async () => {
-    if (!generatedResult || !selectedChar) return;
-
+    if (!generatedResult) return;
     try {
       await addDoc(collection(db, "posts"), {
-        characterId: selectedChar.id,
-        characterName: selectedChar.name,
+        ...(generatedResult.isProduct ? { productName: productInputs.productName } : { characterName: selectedChar?.name, characterId: selectedChar?.id }),
         type: generatedResult.type,
         mediaUrls: generatedResult.mediaUrls,
         caption: generatedResult.caption,
         hashtags: generatedResult.hashtags,
+        isProduct: !!generatedResult.isProduct,
         createdAt: new Date().toISOString()
       });
-
       toast({ title: "Content saved to profile feed!" });
-      setGeneratedResult(null);
       router.push("/profile");
     } catch (error) {
-      console.error("Error saving post:", error);
-      toast({
-        variant: "destructive",
-        title: "Failed to post",
-        description: "Could not save your creation to the cloud."
-      });
-    }
-  };
-
-  const downloadToDevice = () => {
-    if (!generatedResult) return;
-    
-    // In a real browser environment, we'd trigger downloads for each URL
-    // For this prototype, we'll simulate the download intent
-    generatedResult.mediaUrls.forEach((url, i) => {
-      console.log(`Downloading ${url} as altervibe_${generatedResult.type}_${i}.mp4/jpg`);
-    });
-    
-    toast({
-      title: "Download Started",
-      description: `Saving ${generatedResult.mediaUrls.length} file(s) to your device.`
-    });
-  };
-
-  const copyCaption = () => {
-    if (generatedResult) {
-      navigator.clipboard.writeText(`${generatedResult.caption}\n\n${generatedResult.hashtags.join(" ")}`);
-      toast({ title: "Caption copied!" });
+      toast({ variant: "destructive", title: "Failed to post", description: "Cloud sync error." });
     }
   };
 
@@ -319,429 +254,274 @@ function CreatePageContent() {
   return (
     <main className="min-h-screen bg-background pb-24 pt-8 px-4 overflow-y-auto">
       <div className="max-w-xl mx-auto space-y-8">
-        <header className="text-center space-y-2">
+        <header className="text-center space-y-4">
           <h1 className="text-4xl font-black tracking-tighter text-white uppercase italic">
             AlterVibe <span className="text-primary">Studio</span>
           </h1>
-          <p className="text-muted-foreground text-sm">Design and direct your AI creations</p>
+          
+          <div className="flex justify-center">
+            <RadioGroup 
+              value={mode} 
+              onValueChange={(v) => { setMode(v as any); setGeneratedResult(null); }}
+              className="grid grid-cols-2 gap-4 w-full"
+            >
+              <div>
+                <RadioGroupItem value="influencer" id="mode-inf" className="peer sr-only" />
+                <Label
+                  htmlFor="mode-inf"
+                  className="flex items-center justify-center gap-2 rounded-xl border-2 border-white/5 bg-zinc-900/50 p-4 hover:bg-zinc-800 peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/10 transition-all cursor-pointer"
+                >
+                  <UserCircle2 className={`w-5 h-5 ${mode === 'influencer' ? 'text-primary' : 'text-zinc-500'}`} />
+                  <span className={`font-bold ${mode === 'influencer' ? 'text-white' : 'text-zinc-500'}`}>Influencer Lab</span>
+                </Label>
+              </div>
+              <div>
+                <RadioGroupItem value="marketing" id="mode-mkt" className="peer sr-only" />
+                <Label
+                  htmlFor="mode-mkt"
+                  className="flex items-center justify-center gap-2 rounded-xl border-2 border-white/5 bg-zinc-900/50 p-4 hover:bg-zinc-800 peer-data-[state=checked]:border-accent peer-data-[state=checked]:bg-accent/10 transition-all cursor-pointer"
+                >
+                  <ShoppingBag className={`w-5 h-5 ${mode === 'marketing' ? 'text-accent' : 'text-zinc-500'}`} />
+                  <span className={`font-bold ${mode === 'marketing' ? 'text-white' : 'text-zinc-500'}`}>Product Studio</span>
+                </Label>
+              </div>
+            </RadioGroup>
+          </div>
         </header>
 
-        <Tabs value={step} onValueChange={(v) => setStep(v as any)} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 bg-zinc-900 border border-white/5 h-12 p-1">
-            <TabsTrigger value="character" className="data-[state=active]:bg-primary font-bold">1. Identity Lab</TabsTrigger>
-            <TabsTrigger value="studio" className="data-[state=active]:bg-primary font-bold" disabled={savedChars.length === 0}>2. Workshop</TabsTrigger>
-          </TabsList>
+        {!generatedResult ? (
+          mode === "influencer" ? (
+            <Tabs value={step} onValueChange={(v) => setStep(v as any)} className="w-full">
+              <TabsList className="grid w-full grid-cols-2 bg-zinc-900 border border-white/5 h-12 p-1">
+                <TabsTrigger value="character" className="data-[state=active]:bg-primary font-bold">1. Identity Lab</TabsTrigger>
+                <TabsTrigger value="studio" className="data-[state=active]:bg-primary font-bold" disabled={savedChars.length === 0}>2. Workshop</TabsTrigger>
+              </TabsList>
 
-          <TabsContent value="character" className="mt-6 space-y-6">
-            {!charRevealed ? (
-              <Card className="bg-zinc-900 border-white/5 shadow-2xl">
-                <CardHeader>
-                  <CardTitle className="text-xl text-white">Identity Creator</CardTitle>
-                  <CardDescription>Define the personality of your next AI influencer.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="name" className="text-zinc-400">Name</Label>
-                      <input 
-                        id="name" 
-                        placeholder="Luna Spark" 
-                        className="flex h-10 w-full rounded-md border border-white/10 bg-black px-3 py-2 text-sm text-white placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                        value={charInputs.name}
-                        onChange={(e) => setCharInputs({...charInputs, name: e.target.value})}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="gender" className="text-zinc-400">Gender</Label>
-                      <Select value={charInputs.gender} onValueChange={(v) => setCharInputs({...charInputs, gender: v})}>
-                        <SelectTrigger className="bg-black border-white/10 text-white">
-                          <SelectValue placeholder="Gender" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-zinc-900 border-white/10">
-                          <SelectItem value="female">Female</SelectItem>
-                          <SelectItem value="male">Male</SelectItem>
-                          <SelectItem value="non-binary">Non-binary</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="age" className="text-zinc-400">Age Range</Label>
-                      <input 
-                        id="age" 
-                        placeholder="e.g. 18-24" 
-                        className="flex h-10 w-full rounded-md border border-white/10 bg-black px-3 py-2 text-sm text-white placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                        value={charInputs.ageRange}
-                        onChange={(e) => setCharInputs({...charInputs, ageRange: e.target.value})}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="vibe" className="text-zinc-400">Vibe</Label>
-                      <input 
-                        id="vibe" 
-                        placeholder="e.g. Sassy, Intellectual" 
-                        className="flex h-10 w-full rounded-md border border-white/10 bg-black px-3 py-2 text-sm text-white placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                        value={charInputs.vibe}
-                        onChange={(e) => setCharInputs({...charInputs, vibe: e.target.value})}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="aesthetic" className="text-zinc-400">Aesthetic Style</Label>
-                    <input 
-                      id="aesthetic" 
-                      placeholder="e.g. Y2K Cyberpunk, Soft Minimalism" 
-                      className="flex h-10 w-full rounded-md border border-white/10 bg-black px-3 py-2 text-sm text-white placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                      value={charInputs.aesthetic}
-                      onChange={(e) => setCharInputs({...charInputs, aesthetic: e.target.value})}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="outfits" className="text-zinc-400">Outfit Concepts</Label>
-                    <textarea 
-                      id="outfits" 
-                      placeholder="Chrome jackets, holographic boots, oversized streetwear..." 
-                      className="flex min-h-[80px] w-full rounded-md border border-white/10 bg-black px-3 py-2 text-sm text-white placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                      value={charInputs.outfitIdeas}
-                      onChange={(e) => setCharInputs({...charInputs, outfitIdeas: e.target.value})}
-                    />
-                  </div>
-
-                  <Button 
-                    className="w-full bg-primary hover:bg-primary/80 font-bold h-12 text-lg shadow-lg shadow-primary/20"
-                    onClick={handleGenerate}
-                    disabled={isGenerating}
-                  >
-                    {isGenerating ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <Wand2 className="w-5 h-5 mr-2" />}
-                    Generate AI Character
-                  </Button>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-xl font-bold flex items-center gap-2 text-white">
-                    <Sparkles className="w-5 h-5 text-accent" />
-                    Identity Options
-                  </h2>
-                  <Button variant="ghost" size="sm" onClick={() => setCharRevealed(false)} className="text-muted-foreground hover:text-white">
-                    <RefreshCcw className="w-3 h-3 mr-2" />
-                    Regenerate
-                  </Button>
-                </div>
-
-                <div className="grid grid-cols-1 gap-8">
-                  {options.map((opt, index) => (
-                    <Card key={index} className="bg-zinc-900 border-white/10 overflow-hidden shadow-xl">
-                      <div className="aspect-[4/5] relative">
-                        <Image src={opt.imageUrl} alt="AI Character Preview" fill className="object-cover" />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent" />
-                        <div className="absolute top-4 left-4 bg-primary px-3 py-1 rounded-full text-[10px] font-black italic shadow-lg text-white">
-                          CONCEPT {index + 1}
+              <TabsContent value="character" className="mt-6 space-y-6">
+                {!charRevealed ? (
+                  <Card className="bg-zinc-900 border-white/5">
+                    <CardHeader>
+                      <CardTitle className="text-xl text-white">Identity Creator</CardTitle>
+                      <CardDescription>Define the personality of your next AI influencer.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label className="text-zinc-400">Name</Label>
+                          <input 
+                            placeholder="Luna Spark" 
+                            className="flex h-10 w-full rounded-md border border-white/10 bg-black px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary"
+                            value={charInputs.name}
+                            onChange={(e) => setCharInputs({...charInputs, name: e.target.value})}
+                          />
                         </div>
-                        <div className="absolute bottom-6 left-6 right-6">
-                          <h3 className="text-2xl font-black uppercase italic drop-shadow-xl text-white">{charInputs.name}</h3>
-                          <p className="text-accent text-xs font-bold uppercase tracking-widest drop-shadow-lg">"{opt.catchphrase}"</p>
+                        <div className="space-y-2">
+                          <Label className="text-zinc-400">Gender</Label>
+                          <Select value={charInputs.gender} onValueChange={(v) => setCharInputs({...charInputs, gender: v})}>
+                            <SelectTrigger className="bg-black border-white/10 text-white"><SelectValue /></SelectTrigger>
+                            <SelectContent className="bg-zinc-900 border-white/10">
+                              <SelectItem value="female">Female</SelectItem>
+                              <SelectItem value="male">Male</SelectItem>
+                              <SelectItem value="non-binary">Non-binary</SelectItem>
+                            </SelectContent>
+                          </Select>
                         </div>
                       </div>
-                      <CardContent className="pt-6 space-y-4">
-                        <div className="space-y-2">
-                          <Label className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Bio</Label>
-                          <p className="text-sm italic text-zinc-300 leading-relaxed">{opt.personality}</p>
-                        </div>
-                        <div className="space-y-2">
-                          <Label className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Visual Language</Label>
-                          <p className="text-xs text-zinc-400 leading-relaxed">{opt.visualDescription}</p>
-                        </div>
-                        <Button 
-                          className={`w-full h-11 transition-all ${savedChars.some(c => c.personality === opt.personality) ? 'bg-green-600 hover:bg-green-700' : 'bg-white text-black hover:bg-zinc-200'}`}
-                          onClick={() => handleSaveCharacter(opt)}
-                          disabled={savedChars.some(c => c.personality === opt.personality)}
-                        >
-                          {savedChars.some(c => c.personality === opt.personality) ? (
-                            <><CheckCircle2 className="w-4 h-4 mr-2" /> Saved to Roster</>
-                          ) : (
-                            <><Save className="w-4 h-4 mr-2" /> Save this Character</>
-                          )}
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-
-                <Button 
-                  className="w-full bg-primary h-14 font-black uppercase italic text-lg shadow-2xl shadow-primary/30 text-white"
-                  onClick={() => setStep("studio")}
-                  disabled={savedChars.length === 0}
-                >
-                  Enter Workshop
-                  <Activity className="w-5 h-5 ml-2" />
-                </Button>
-              </div>
-            )}
-          </TabsContent>
-
-          <TabsContent value="studio" className="mt-6">
-            {!generatedResult ? (
-              <Card className="bg-zinc-900 border-white/5">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-white">
-                    <Sparkles className="w-5 h-5 text-accent" />
-                    Workshop
-                  </CardTitle>
-                  <CardDescription>Direct your AI character for high-engagement content.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="space-y-3">
-                    <Label className="text-zinc-400">Your Roster</Label>
-                    <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
-                      {savedChars.map((char) => (
-                        <button 
-                          key={char.id}
-                          onClick={() => setSelectedChar(char)}
-                          className="flex-shrink-0 w-24 flex flex-col items-center gap-2 group outline-none"
-                        >
-                          <div className={`w-20 h-20 rounded-full border-4 transition-all overflow-hidden relative ${selectedChar?.id === char.id ? 'border-primary scale-110 shadow-lg shadow-primary/20' : 'border-white/10 opacity-50'}`}>
-                            <Image src={char.imageUrl} alt="Roster" fill className="object-cover" />
+                      <div className="space-y-2">
+                        <Label className="text-zinc-400">Vibe & Aesthetic</Label>
+                        <input 
+                          placeholder="e.g. Sassy, Cyberpunk" 
+                          className="flex h-10 w-full rounded-md border border-white/10 bg-black px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary"
+                          value={charInputs.vibe}
+                          onChange={(e) => setCharInputs({...charInputs, vibe: e.target.value})}
+                        />
+                      </div>
+                      <Button className="w-full bg-primary font-bold h-12" onClick={handleGenerateChar} disabled={isGenerating}>
+                        {isGenerating ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <Wand2 className="w-5 h-5 mr-2" />}
+                        Generate Concepts
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <div className="grid grid-cols-1 gap-8 animate-in slide-in-from-bottom-4">
+                    {options.map((opt, index) => (
+                      <Card key={index} className="bg-zinc-900 border-white/10 overflow-hidden">
+                        <div className="aspect-[4/5] relative">
+                          <Image src={opt.imageUrl} alt="Preview" fill className="object-cover" />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent" />
+                          <div className="absolute bottom-6 left-6 right-6">
+                            <h3 className="text-2xl font-black uppercase italic text-white">{charInputs.name}</h3>
+                            <p className="text-accent text-xs font-bold uppercase tracking-widest">"{opt.catchphrase}"</p>
                           </div>
-                          <span className={`text-[10px] font-bold truncate w-full text-center ${selectedChar?.id === char.id ? 'text-primary' : 'text-muted-foreground'}`}>{char.name}</span>
+                        </div>
+                        <CardContent className="pt-6 space-y-4">
+                          <p className="text-sm italic text-zinc-300">{opt.personality}</p>
+                          <Button 
+                            className="w-full h-11 bg-white text-black hover:bg-zinc-200"
+                            onClick={async () => {
+                              await addDoc(collection(db, "characters"), {
+                                ...opt, name: charInputs.name, createdAt: new Date().toISOString()
+                              });
+                              setCharRevealed(false);
+                              setStep("studio");
+                              toast({ title: "Saved to roster!" });
+                            }}
+                          >
+                            <Save className="w-4 h-4 mr-2" /> Save to Roster
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </TabsContent>
+
+              <TabsContent value="studio" className="mt-6 space-y-6">
+                <Card className="bg-zinc-900 border-white/5">
+                  <CardHeader><CardTitle>Workshop</CardTitle></CardHeader>
+                  <CardContent className="space-y-6">
+                    <div className="flex gap-4 overflow-x-auto pb-2">
+                      {savedChars.map((char) => (
+                        <button key={char.id} onClick={() => setSelectedChar(char)} className="flex-shrink-0 flex flex-col items-center gap-2">
+                          <div className={`w-16 h-16 rounded-full border-2 overflow-hidden ${selectedChar?.id === char.id ? 'border-primary' : 'border-white/10 opacity-50'}`}>
+                            <Image src={char.imageUrl} alt="Roster" width={64} height={64} className="object-cover" />
+                          </div>
+                          <span className="text-[10px] font-bold text-white">{char.name}</span>
                         </button>
                       ))}
                     </div>
-                  </div>
-
-                  {selectedChar?.personality && (
-                    <div className="p-4 bg-black/40 rounded-xl border border-white/10 animate-in fade-in duration-300">
-                      <h3 className="text-sm font-bold text-primary mb-1 uppercase tracking-wider">Personality:</h3>
-                      <p className="text-xs italic text-zinc-300 leading-relaxed">{selectedChar.personality}</p>
-                    </div>
-                  )}
-
-                  <div className="space-y-3">
-                    <Label className="text-zinc-400">Format</Label>
-                    <RadioGroup 
-                      value={contentType} 
-                      onValueChange={(v) => setContentType(v as any)}
-                      className="grid grid-cols-2 gap-4"
-                    >
-                      <div className="cursor-pointer">
-                        <RadioGroupItem value="video" id="v-studio" className="peer sr-only" />
-                        <Label
-                          htmlFor="v-studio"
-                          className="flex flex-col items-center justify-between rounded-xl border-2 border-muted bg-black/40 p-5 hover:bg-zinc-800 peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/10 transition-all text-white"
-                        >
-                          <VideoIcon className="mb-2 h-7 w-7 text-primary" />
-                          <span className="font-bold">AI Video</span>
-                        </Label>
-                      </div>
-                      <div className="cursor-pointer">
-                        <RadioGroupItem value="photo" id="p-studio" className="peer sr-only" />
-                        <Label
-                          htmlFor="p-studio"
-                          className="flex flex-col items-center justify-between rounded-xl border-2 border-muted bg-black/40 p-5 hover:bg-zinc-800 peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/10 transition-all text-white"
-                        >
-                          <ImageIcon className="mb-2 h-7 w-7 text-primary" />
-                          <span className="font-bold">Photo Set</span>
-                        </Label>
-                      </div>
+                    <RadioGroup value={contentType} onValueChange={(v) => setContentType(v as any)} className="grid grid-cols-2 gap-4">
+                      <Label htmlFor="v-inf" className="cursor-pointer border-2 border-white/5 bg-black p-4 rounded-xl flex flex-col items-center peer-data-[state=checked]:border-primary">
+                        <RadioGroupItem value="video" id="v-inf" className="sr-only" /><VideoIcon className="mb-2" /><span>Video</span>
+                      </Label>
+                      <Label htmlFor="p-inf" className="cursor-pointer border-2 border-white/5 bg-black p-4 rounded-xl flex flex-col items-center peer-data-[state=checked]:border-primary">
+                        <RadioGroupItem value="photo" id="p-inf" className="sr-only" /><ImageIcon className="mb-2" /><span>Photo Set</span>
+                      </Label>
                     </RadioGroup>
-                  </div>
-
+                    <textarea 
+                      placeholder="Director's Notes..." 
+                      className="w-full bg-black border border-white/10 rounded-md p-3 text-sm min-h-[100px]"
+                      value={userPrompt} onChange={(e) => setUserPrompt(e.target.value)}
+                    />
+                    <Button className="w-full bg-primary font-black h-14" onClick={handleGenerateInfluencerContent} disabled={isGenerating || !selectedChar}>
+                      {isGenerating ? <Loader2 className="animate-spin" /> : <Rocket className="mr-2" />} Render AI Content
+                    </Button>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
+          ) : (
+            <Card className="bg-zinc-900 border-white/5">
+              <CardHeader>
+                <CardTitle className="text-accent flex items-center gap-2">
+                  <ShoppingBag className="w-6 h-6" /> Product Studio
+                </CardTitle>
+                <CardDescription>Generate viral marketing assets for your products.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label className="flex items-center gap-2 text-zinc-400">
-                      <Zap className="w-3 h-3 text-accent" />
-                      Viral Vibe
-                    </Label>
-                    <Select value={contentStyle} onValueChange={setContentStyle}>
-                      <SelectTrigger className="bg-black border-white/10 h-11 text-white">
-                        <SelectValue placeholder="Select a trend" />
-                      </SelectTrigger>
+                    <Label className="text-zinc-400">Product Name</Label>
+                    <input 
+                      placeholder="e.g. Hydro-Mist 500" 
+                      className="w-full bg-black border border-white/10 rounded-md p-2 text-sm"
+                      value={productInputs.productName}
+                      onChange={(e) => setProductInputs({...productInputs, productName: e.target.value})}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-zinc-400">Category</Label>
+                    <Select value={productInputs.category} onValueChange={(v) => setProductInputs({...productInputs, category: v})}>
+                      <SelectTrigger className="bg-black border-white/10"><SelectValue /></SelectTrigger>
                       <SelectContent className="bg-zinc-900 border-white/10">
-                        {contentType === "video" ? (
-                          <>
-                            <SelectItem value="viral dance">Dance Challenge</SelectItem>
-                            <SelectItem value="POV">POV Commentary</SelectItem>
-                            <SelectItem value="GRWM">GRWM Routine</SelectItem>
-                            <SelectItem value="transition">Outfit Transition</SelectItem>
-                          </>
-                        ) : (
-                          <>
-                            <SelectItem value="editorial">Editorial Set (5 images)</SelectItem>
-                            <SelectItem value="street">Street Style Set</SelectItem>
-                            <SelectItem value="lifestyle">Lifestyle Candid Set</SelectItem>
-                            <SelectItem value="lookbook">Season Lookbook</SelectItem>
-                          </>
-                        )}
+                        <SelectItem value="Skincare">Skincare</SelectItem>
+                        <SelectItem value="Tech">Tech Accessories</SelectItem>
+                        <SelectItem value="Fashion">Apparel</SelectItem>
+                        <SelectItem value="Home">Smart Home</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
-
-                  <div className="space-y-2">
-                    <Label className="flex items-center gap-2 text-zinc-400">
-                      <Wand2 className="w-3 h-3 text-primary" />
-                      Director's Notes (Prompt)
-                    </Label>
-                    <textarea 
-                      placeholder="e.g. Walking through a rainy neon marketplace, wearing chrome streetwear..." 
-                      className="flex min-h-[100px] w-full rounded-md border border-white/10 bg-black px-3 py-2 text-sm text-white placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                      value={userPrompt}
-                      onChange={(e) => setUserPrompt(e.target.value)}
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-zinc-400">Marketing Hook / Description</Label>
+                  <textarea 
+                    placeholder="What makes this product special?" 
+                    className="w-full bg-black border border-white/10 rounded-md p-3 text-sm min-h-[80px]"
+                    value={productInputs.description}
+                    onChange={(e) => setProductInputs({...productInputs, description: e.target.value})}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                   <div className="space-y-2">
+                    <Label className="text-zinc-400">Target Audience</Label>
+                    <input 
+                      placeholder="e.g. Gen Z Creators" 
+                      className="w-full bg-black border border-white/10 rounded-md p-2 text-sm"
+                      value={productInputs.targetAudience}
+                      onChange={(e) => setProductInputs({...productInputs, targetAudience: e.target.value})}
                     />
                   </div>
-
-                  <Button 
-                    className="w-full bg-accent text-black hover:bg-accent/80 font-black h-14 text-xl uppercase italic shadow-2xl shadow-accent/20"
-                    onClick={handleGenerateContent}
-                    disabled={isGenerating || !selectedChar}
-                  >
-                    {isGenerating ? (
-                      <>
-                        <Loader2 className="w-6 h-6 animate-spin mr-2" />
-                        Rendering...
-                      </>
-                    ) : (
-                      <>
-                        <Activity className="w-6 h-6 mr-2" />
-                        Generate AI Content
-                      </>
-                    )}
-                  </Button>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="space-y-6 animate-in zoom-in-95 duration-500">
-                <div className={`relative ${generatedResult.type === 'video' ? 'aspect-[9/16]' : 'aspect-[4/5]'} w-full max-w-sm mx-auto`}>
-                  {generatedResult.type === 'video' ? (
-                    <div className="relative w-full h-full rounded-[2.5rem] overflow-hidden border-8 border-zinc-800 shadow-2xl shadow-primary/20 bg-zinc-950">
-                      <video src={generatedResult.mediaUrls[0]} controls autoPlay loop className="w-full h-full object-cover" />
-                    </div>
-                  ) : (
-                    <Carousel className="w-full">
-                      <CarouselContent>
-                        {generatedResult.mediaUrls.map((url, index) => (
-                          <CarouselItem key={index}>
-                            <div className="relative aspect-[4/5] rounded-3xl overflow-hidden border-4 border-primary shadow-2xl shadow-primary/20">
-                              <Image src={url} alt={`Generated Photo ${index + 1}`} fill className="object-cover" />
-                              <div className="absolute top-4 right-4 bg-primary/90 backdrop-blur-md px-4 py-1.5 rounded-full text-[12px] font-black italic shadow-lg text-white">
-                                {index + 1} / 5
-                              </div>
-                            </div>
-                          </CarouselItem>
-                        ))}
-                      </CarouselContent>
-                      <CarouselPrevious className="left-2 bg-black/60 border-none h-10 w-10 hover:bg-primary transition-all text-white" />
-                      <CarouselNext className="right-2 bg-black/60 border-none h-10 w-10 hover:bg-primary transition-all text-white" />
-                    </Carousel>
-                  )}
+                  <div className="space-y-2">
+                    <Label className="text-zinc-400">Format</Label>
+                    <Select value={contentType} onValueChange={(v) => setContentType(v as any)}>
+                      <SelectTrigger className="bg-black border-white/10"><SelectValue /></SelectTrigger>
+                      <SelectContent className="bg-zinc-900 border-white/10">
+                        <SelectItem value="video">Promotional Video</SelectItem>
+                        <SelectItem value="photo">Ad Photo Set</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-
-                <Card className="bg-zinc-900 border-white/5 shadow-2xl">
-                  <CardContent className="pt-6 space-y-4">
-                    <div className="space-y-3">
-                      <Label className="text-muted-foreground uppercase text-[10px] tracking-widest font-bold">Generated AI Caption</Label>
-                      <div className="p-4 bg-black rounded-xl border border-white/5 leading-relaxed relative">
-                        <p className="text-sm italic text-zinc-200">
-                          {generatedResult.caption}
-                        </p>
-                        <div className="flex flex-wrap gap-2 mt-4">
-                          {generatedResult.hashtags.map(h => (
-                            <span key={h} className="px-3 py-1 rounded-full bg-primary/10 text-[11px] font-bold text-primary border border-primary/20">{h}</span>
-                          ))}
+                <Button className="w-full bg-accent text-black font-black h-14" onClick={handleGenerateMarketing} disabled={isGenerating}>
+                   {isGenerating ? <Loader2 className="animate-spin" /> : <Sparkles className="mr-2" />} Launch Marketing Studio
+                </Button>
+              </CardContent>
+            </Card>
+          )
+        ) : (
+          <div className="space-y-6 animate-in zoom-in-95">
+            <div className={`relative ${generatedResult.type === 'video' ? 'aspect-[9/16]' : 'aspect-[1/1]'} w-full max-w-sm mx-auto`}>
+              {generatedResult.type === 'video' ? (
+                <video src={generatedResult.mediaUrls[0]} controls autoPlay loop className="rounded-3xl border-8 border-zinc-800 shadow-2xl w-full h-full object-cover" />
+              ) : (
+                <Carousel className="w-full">
+                  <CarouselContent>
+                    {generatedResult.mediaUrls.map((url, i) => (
+                      <CarouselItem key={i}>
+                        <div className="relative aspect-[1/1] rounded-3xl overflow-hidden border-4 border-white/10 shadow-2xl">
+                          <Image src={url} alt="Marketing" fill className="object-cover" />
                         </div>
-                      </div>
-                    </div>
+                      </CarouselItem>
+                    ))}
+                  </CarouselContent>
+                  <CarouselPrevious className="left-2" />
+                  <CarouselNext className="right-2" />
+                </Carousel>
+              )}
+            </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                      <Button variant="outline" className="border-white/10 bg-black h-12 rounded-xl text-white" onClick={copyCaption}>
-                        <Copy className="w-4 h-4 mr-2" /> Copy Text
-                      </Button>
-                      <Button variant="outline" className="border-white/10 bg-black h-12 rounded-xl text-white" onClick={() => setGeneratedResult(null)}>
-                        <RefreshCcw className="w-4 h-4 mr-2" /> Redo Render
-                      </Button>
-                    </div>
-
-                    <div className="flex flex-col gap-3">
-                      <Button 
-                        className="w-full bg-primary font-black h-14 uppercase italic text-lg rounded-xl shadow-xl shadow-primary/20 text-white" 
-                        onClick={finalizeAndPost}
-                      >
-                        <CheckCircle2 className="w-6 h-6 mr-2" /> Finalize & Post
-                      </Button>
-                      
-                      <div className="grid grid-cols-2 gap-3">
-                        <Button 
-                          variant="outline" 
-                          className="h-12 rounded-xl border-primary/20 bg-primary/5 text-primary hover:bg-primary/10"
-                          onClick={downloadToDevice}
-                        >
-                          <Download className="w-4 h-4 mr-2" /> Save to Device
-                        </Button>
-                        
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <Button 
-                              variant="outline" 
-                              className="h-12 rounded-xl border-accent/20 bg-accent/5 text-accent hover:bg-accent/10"
-                            >
-                              <Share2 className="w-4 h-4 mr-2" /> Direct Post
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent className="bg-zinc-900 border-white/10 text-white">
-                            <DialogHeader>
-                              <DialogTitle className="text-xl font-black uppercase italic">Social Sync</DialogTitle>
-                              <DialogDescription className="text-zinc-400">
-                                Connect your accounts to post {selectedChar?.name}'s content directly.
-                              </DialogDescription>
-                            </DialogHeader>
-                            <div className="space-y-4 py-4">
-                              <div className="flex items-center justify-between p-3 rounded-xl bg-black border border-white/5">
-                                <div className="flex items-center gap-3">
-                                  <TikTokIcon />
-                                  <span className="font-bold">TikTok</span>
-                                </div>
-                                <Button size="sm" variant="outline" className="text-[10px] font-black uppercase border-primary/40 text-primary">Post Now</Button>
-                              </div>
-                              <div className="flex items-center justify-between p-3 rounded-xl bg-black border border-white/5">
-                                <div className="flex items-center gap-3">
-                                  <Instagram className="w-6 h-6 text-pink-500" />
-                                  <span className="font-bold">Instagram Reels</span>
-                                </div>
-                                <Button size="sm" variant="outline" className="text-[10px] font-black uppercase border-primary/40 text-primary">Post Now</Button>
-                              </div>
-                              <div className="flex items-center justify-between p-3 rounded-xl bg-black border border-white/5">
-                                <div className="flex items-center gap-3">
-                                  <Twitter className="w-6 h-6 text-blue-400" />
-                                  <span className="font-bold">X (Twitter)</span>
-                                </div>
-                                <Button size="sm" variant="ghost" className="text-[10px] font-black uppercase text-zinc-500">Connect</Button>
-                              </div>
-                              <div className="flex items-center justify-between p-3 rounded-xl bg-black border border-white/5">
-                                <div className="flex items-center gap-3">
-                                  <Facebook className="w-6 h-6 text-blue-600" />
-                                  <span className="font-bold">Facebook</span>
-                                </div>
-                                <Button size="sm" variant="ghost" className="text-[10px] font-black uppercase text-zinc-500">Connect</Button>
-                              </div>
-                            </div>
-                            <DialogFooter>
-                              <Button className="w-full bg-primary font-black uppercase italic h-12">
-                                <Send className="w-4 h-4 mr-2" /> Sync All Platforms
-                              </Button>
-                            </DialogFooter>
-                          </DialogContent>
-                        </Dialog>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            )}
-          </TabsContent>
-        </Tabs>
+            <Card className="bg-zinc-900 border-white/5">
+              <CardContent className="pt-6 space-y-4">
+                {generatedResult.headline && (
+                  <h3 className="text-xl font-black text-accent uppercase italic">{generatedResult.headline}</h3>
+                )}
+                <p className="text-sm italic text-zinc-200 bg-black p-4 rounded-xl border border-white/5">{generatedResult.caption}</p>
+                {generatedResult.hooks && (
+                  <div className="space-y-2">
+                    <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Viral Hooks</p>
+                    {generatedResult.hooks.map((h, i) => (
+                      <div key={i} className="text-xs bg-white/5 p-2 rounded border border-white/5 italic">{h}</div>
+                    ))}
+                  </div>
+                )}
+                <div className="grid grid-cols-2 gap-4">
+                  <Button variant="outline" className="border-white/10" onClick={() => setGeneratedResult(null)}><RefreshCcw className="w-4 h-4 mr-2" /> Redo</Button>
+                  <Button className="bg-primary font-black" onClick={finalizeAndPost}><CheckCircle2 className="w-4 h-4 mr-2" /> Finalize & Post</Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
       <Navigation />
     </main>
@@ -750,12 +530,7 @@ function CreatePageContent() {
 
 export default function CreatePage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-black flex flex-col items-center justify-center text-primary font-black italic gap-4">
-        <Loader2 className="w-12 h-12 animate-spin" />
-        <span className="animate-pulse tracking-widest uppercase text-sm">Initializing Studio...</span>
-      </div>
-    }>
+    <Suspense fallback={<div className="min-h-screen bg-black flex items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>}>
       <CreatePageContent />
     </Suspense>
   );
