@@ -6,6 +6,9 @@ import { useRouter } from "next/navigation";
 import { Navigation } from "@/components/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { 
   Settings, 
   LogOut, 
@@ -25,11 +28,15 @@ import {
   Send,
   Twitter,
   Facebook,
-  Instagram
+  Instagram,
+  Link as LinkIcon,
+  Globe,
+  Upload,
+  X
 } from "lucide-react";
 import Image from "next/image";
 import { db } from "@/lib/firebase";
-import { collection, query, onSnapshot, orderBy, deleteDoc, doc } from "firebase/firestore";
+import { collection, query, onSnapshot, orderBy, deleteDoc, doc, setDoc, getDoc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import {
   Carousel,
@@ -69,8 +76,21 @@ type Post = {
   createdAt: string;
 };
 
-const TikTokIcon = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+type UserProfile = {
+  username: string;
+  bio: string;
+  avatarUrl: string;
+  websiteUrl: string;
+  socials: {
+    tiktok: string;
+    instagram: string;
+    twitter: string;
+    facebook: string;
+  };
+};
+
+const TikTokIcon = ({ size = 24 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
     <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.17-2.89-.6-4.13-1.47-.13-.08-.25-.17-.38-.25V14.5c.02 2.22-.73 4.48-2.3 6.08-1.58 1.61-3.9 2.39-6.13 2.14-2.22-.24-4.29-1.49-5.49-3.38-1.19-1.89-1.39-4.27-.55-6.27.83-2 2.64-3.51 4.74-4.04 1.25-.32 2.57-.3 3.82.04V13.3c-.76-.23-1.61-.25-2.38-.05-.77.2-1.44.69-1.9 1.35-.45.66-.55 1.48-.3 2.25.26.77.85 1.39 1.58 1.72.73.33 1.59.33 2.32.02.73-.31 1.28-.9 1.52-1.64.12-.37.16-.77.15-1.16V0h-.01z"/>
   </svg>
 );
@@ -85,7 +105,33 @@ export default function ProfilePage() {
   const [viewedCharacter, setViewedCharacter] = useState<Character | null>(null);
   const [viewedPost, setViewedPost] = useState<Post | null>(null);
 
+  // Settings State
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
+  const [profile, setProfile] = useState<UserProfile>({
+    username: "Digital Architect",
+    bio: "AI Influencer Creator • Building the future of digital presence.",
+    avatarUrl: "https://picsum.photos/seed/user/200/200",
+    websiteUrl: "",
+    socials: {
+      tiktok: "",
+      instagram: "",
+      twitter: "",
+      facebook: "",
+    }
+  });
+
   useEffect(() => {
+    // Fetch Profile
+    const fetchProfile = async () => {
+      const docRef = doc(db, "profiles", "me");
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        setProfile(docSnap.data() as UserProfile);
+      }
+    };
+    fetchProfile();
+
     const charQ = query(collection(db, "characters"), orderBy("createdAt", "desc"));
     const unsubChar = onSnapshot(charQ, (snapshot) => {
       setCharacters(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Character)));
@@ -102,6 +148,34 @@ export default function ProfilePage() {
       unsubPost();
     };
   }, []);
+
+  const handleSaveSettings = async () => {
+    setIsSavingSettings(true);
+    try {
+      await setDoc(doc(db, "profiles", "me"), profile);
+      toast({ title: "Profile Updated", description: "Your settings have been saved to the cloud." });
+      setIsSettingsOpen(false);
+    } catch (e) {
+      toast({ variant: "destructive", title: "Update Failed", description: "Could not save settings." });
+    } finally {
+      setIsSavingSettings(false);
+    }
+  };
+
+  const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        toast({ variant: "destructive", title: "File too large", description: "Maximum 2MB allowed." });
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setProfile(prev => ({ ...prev, avatarUrl: reader.result as string }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleDeleteCharacter = async (id: string) => {
     if (!confirm("Are you sure you want to delete this character? All their magic will be lost.")) return;
@@ -340,21 +414,151 @@ export default function ProfilePage() {
             <header className="flex flex-col items-center space-y-4">
               <div className="w-32 h-32 rounded-full border-4 border-black overflow-hidden bg-zinc-800 shadow-2xl relative">
                 <Image 
-                  src="https://picsum.photos/seed/user/200/200" 
+                  src={profile.avatarUrl} 
                   alt="User avatar" 
                   fill 
                   className="object-cover"
                 />
               </div>
-              <div className="text-center space-y-1">
-                <h1 className="text-2xl font-black text-white uppercase italic tracking-tighter">Digital Architect</h1>
-                <p className="text-muted-foreground text-sm font-medium">AI Influencer Creator • {characters.length} Models</p>
+              <div className="text-center space-y-2">
+                <h1 className="text-2xl font-black text-white uppercase italic tracking-tighter">{profile.username}</h1>
+                <p className="text-muted-foreground text-sm font-medium max-w-xs mx-auto leading-relaxed">{profile.bio}</p>
+                
+                {profile.websiteUrl && (
+                  <a 
+                    href={profile.websiteUrl.startsWith('http') ? profile.websiteUrl : `https://${profile.websiteUrl}`} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-1.5 text-primary text-xs font-bold hover:underline mt-2"
+                  >
+                    <Globe className="w-3.5 h-3.5" />
+                    {profile.websiteUrl.replace(/^https?:\/\//, '')}
+                  </a>
+                )}
+
+                <div className="flex justify-center gap-4 mt-4 opacity-70">
+                  {profile.socials.tiktok && <TikTokIcon size={18} />}
+                  {profile.socials.instagram && <Instagram className="w-[18px] h-[18px]" />}
+                  {profile.socials.twitter && <Twitter className="w-[18px] h-[18px]" />}
+                  {profile.socials.facebook && <Facebook className="w-[18px] h-[18px]" />}
+                </div>
               </div>
+
               <div className="flex gap-4">
-                <Button size="sm" variant="outline" className="bg-black border-white/10 rounded-full h-10 px-6">
-                  <Settings className="w-4 h-4 mr-2" />
-                  Settings
-                </Button>
+                <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
+                  <DialogTrigger asChild>
+                    <Button size="sm" variant="outline" className="bg-black border-white/10 rounded-full h-10 px-6">
+                      <Settings className="w-4 h-4 mr-2" />
+                      Settings
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="bg-zinc-900 border-white/10 text-white max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle className="text-xl font-black uppercase italic">Profile Settings</DialogTitle>
+                      <DialogDescription className="text-zinc-400">Update your digital identity and social links.</DialogDescription>
+                    </DialogHeader>
+                    
+                    <div className="space-y-6 py-4">
+                      {/* Avatar Upload */}
+                      <div className="flex flex-col items-center gap-3">
+                        <div className="relative w-24 h-24 rounded-full overflow-hidden border-2 border-primary">
+                          <Image src={profile.avatarUrl} alt="Preview" fill className="object-cover" />
+                        </div>
+                        <Label htmlFor="avatar-upload" className="cursor-pointer bg-white/5 px-4 py-2 rounded-full border border-white/10 text-[10px] font-black uppercase tracking-widest hover:bg-white/10 flex items-center gap-2">
+                          <Upload className="w-3 h-3" /> Change Photo
+                        </Label>
+                        <input id="avatar-upload" type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
+                      </div>
+
+                      {/* Basic Info */}
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <Label className="text-zinc-500 uppercase text-[10px] font-black">Architect Name</Label>
+                          <Input 
+                            value={profile.username} 
+                            onChange={(e) => setProfile(p => ({ ...p, username: e.target.value }))}
+                            className="bg-black border-white/10"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-zinc-500 uppercase text-[10px] font-black">Bio</Label>
+                          <Textarea 
+                            value={profile.bio} 
+                            onChange={(e) => setProfile(p => ({ ...p, bio: e.target.value }))}
+                            className="bg-black border-white/10 min-h-[80px]"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-zinc-500 uppercase text-[10px] font-black">Website URL</Label>
+                          <div className="relative">
+                            <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                            <Input 
+                              placeholder="yourwebsite.com"
+                              value={profile.websiteUrl} 
+                              onChange={(e) => setProfile(p => ({ ...p, websiteUrl: e.target.value }))}
+                              className="bg-black border-white/10 pl-10"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Socials */}
+                      <div className="space-y-4 border-t border-white/5 pt-4">
+                        <Label className="text-zinc-500 uppercase text-[10px] font-black">Social Connections (Usernames)</Label>
+                        <div className="grid grid-cols-1 gap-3">
+                          <div className="relative">
+                            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500"><TikTokIcon size={16} /></div>
+                            <Input 
+                              placeholder="TikTok Username"
+                              value={profile.socials.tiktok} 
+                              onChange={(e) => setProfile(p => ({ ...p, socials: { ...p.socials, tiktok: e.target.value } }))}
+                              className="bg-black border-white/10 pl-10"
+                            />
+                          </div>
+                          <div className="relative">
+                            <Instagram className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                            <Input 
+                              placeholder="Instagram Username"
+                              value={profile.socials.instagram} 
+                              onChange={(e) => setProfile(p => ({ ...p, socials: { ...p.socials, instagram: e.target.value } }))}
+                              className="bg-black border-white/10 pl-10"
+                            />
+                          </div>
+                          <div className="relative">
+                            <Twitter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                            <Input 
+                              placeholder="X/Twitter Username"
+                              value={profile.socials.twitter} 
+                              onChange={(e) => setProfile(p => ({ ...p, socials: { ...p.socials, twitter: e.target.value } }))}
+                              className="bg-black border-white/10 pl-10"
+                            />
+                          </div>
+                          <div className="relative">
+                            <Facebook className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                            <Input 
+                              placeholder="Facebook Page/Profile"
+                              value={profile.socials.facebook} 
+                              onChange={(e) => setProfile(p => ({ ...p, socials: { ...p.socials, facebook: e.target.value } }))}
+                              className="bg-black border-white/10 pl-10"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <DialogFooter>
+                      <Button 
+                        onClick={handleSaveSettings} 
+                        disabled={isSavingSettings}
+                        className="w-full bg-primary font-black uppercase italic h-12"
+                      >
+                        {isSavingSettings ? <Loader2 className="animate-spin mr-2" /> : <CheckCircle2 className="w-4 h-4 mr-2" />}
+                        Save Changes
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+
                 <Button size="sm" variant="destructive" className="rounded-full h-10 px-6">
                   <LogOut className="w-4 h-4 mr-2" />
                   Sign Out
