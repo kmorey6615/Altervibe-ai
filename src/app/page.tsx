@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { Navigation } from "@/components/navigation";
 import { FeedItem } from "@/components/feed-item";
 import { db } from "@/lib/firebase";
-import { collection, query, onSnapshot, orderBy } from "firebase/firestore";
+import { collection, query, onSnapshot, orderBy, getDocs } from "firebase/firestore";
 import { Loader2, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -13,10 +13,12 @@ export default function Home() {
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"foryou" | "following">("foryou");
+  const [followedCreators, setFollowedCreators] = useState<string[]>([]);
 
   useEffect(() => {
+    // Listen for all posts
     const q = query(collection(db, "posts"), orderBy("createdAt", "desc"));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
+    const unsubscribePosts = onSnapshot(q, (snapshot) => {
       const fetchedPosts = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
@@ -24,14 +26,23 @@ export default function Home() {
       setPosts(fetchedPosts);
       setLoading(false);
     });
-    return () => unsubscribe();
+
+    // Listen for followed creators
+    const followsQ = query(collection(db, "follows"));
+    const unsubscribeFollows = onSnapshot(followsQ, (snapshot) => {
+      const follows = snapshot.docs.map(doc => doc.data().creatorName);
+      setFollowedCreators(follows);
+    });
+
+    return () => {
+      unsubscribePosts();
+      unsubscribeFollows();
+    };
   }, []);
 
-  // For prototype purposes, we simulate "Following" by filtering for specific creators 
-  // or simply showing a randomized subset if no follows exist yet.
-  // In a real app, this would query a "follows" collection.
+  // Filter posts based on the active tab
   const displayPosts = activeTab === "following" 
-    ? posts.filter((_, index) => index % 2 === 0) // Simulating a filtered following feed
+    ? posts.filter(post => followedCreators.includes(post.characterName || post.productName))
     : posts;
 
   if (loading) {

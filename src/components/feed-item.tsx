@@ -1,13 +1,15 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Heart, MessageCircle, Share2, Music, Sparkles, Bookmark, Plus, Check } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { db } from "@/lib/firebase";
+import { collection, query, where, getDocs, addDoc, deleteDoc, doc } from "firebase/firestore";
 
 interface FeedItemProps {
   video: {
@@ -33,6 +35,15 @@ export function FeedItem({ video }: FeedItemProps) {
   const [isFavorited, setIsFavorited] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
 
+  useEffect(() => {
+    const checkFollowStatus = async () => {
+      const q = query(collection(db, "follows"), where("creatorName", "==", video.userName));
+      const querySnapshot = await getDocs(q);
+      setIsFollowing(!querySnapshot.empty);
+    };
+    checkFollowStatus();
+  }, [video.userName]);
+
   const handleUseTrend = () => {
     const style = video.contentStyle || "viral style";
     const path = video.characterId 
@@ -54,17 +65,34 @@ export function FeedItem({ video }: FeedItemProps) {
     });
   };
 
-  const toggleFollow = (e: React.MouseEvent) => {
+  const toggleFollow = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    setIsFollowing(!isFollowing);
-    toast({ 
-      title: isFollowing ? "Unfollowed" : "Following!", 
-      description: isFollowing ? `You stopped following ${video.userName}` : `You're now following ${video.userName}'s journey.` 
-    });
+    const newFollowState = !isFollowing;
+    setIsFollowing(newFollowState);
+
+    try {
+      if (newFollowState) {
+        await addDoc(collection(db, "follows"), {
+          creatorName: video.userName,
+          createdAt: new Date().toISOString()
+        });
+        toast({ title: "Following!", description: `You're now following ${video.userName}.` });
+      } else {
+        const q = query(collection(db, "follows"), where("creatorName", "==", video.userName));
+        const querySnapshot = await getDocs(q);
+        querySnapshot.forEach(async (document) => {
+          await deleteDoc(doc(db, "follows", document.id));
+        });
+        toast({ title: "Unfollowed", description: `You stopped following ${video.userName}.` });
+      }
+    } catch (error) {
+      console.error("Follow operation failed:", error);
+      setIsFollowing(!newFollowState); // Revert UI
+      toast({ variant: "destructive", title: "Error", description: "Could not update follow status." });
+    }
   };
 
   const viewProfile = () => {
-    // If it's a character, we go to its detail view. In a real app, this would be a user profile.
     if (video.characterId) {
       router.push(`/profile?charId=${video.characterId}`);
     } else {
@@ -74,10 +102,7 @@ export function FeedItem({ video }: FeedItemProps) {
 
   return (
     <div className="tiktok-item bg-black">
-      {/* Phone-sized Container */}
       <div className="relative aspect-[9/16] h-full max-h-[800px] w-full max-w-[450px] bg-zinc-900 rounded-[2.5rem] overflow-hidden border-[8px] border-zinc-800 shadow-2xl flex flex-col justify-end">
-        
-        {/* Media Content */}
         <div className="absolute inset-0 z-0 bg-zinc-950">
           {video.type === "video" ? (
             <video 
@@ -101,9 +126,7 @@ export function FeedItem({ video }: FeedItemProps) {
           <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/90" />
         </div>
 
-        {/* Sidebar Actions */}
         <div className="absolute right-4 bottom-32 flex flex-col gap-5 z-10">
-          {/* Avatar with Follow Toggle */}
           <div className="relative mb-2">
             <div 
               onClick={viewProfile}
@@ -162,7 +185,6 @@ export function FeedItem({ video }: FeedItemProps) {
           </div>
         </div>
 
-        {/* Bottom Info Area */}
         <div className="p-6 relative z-10 w-full space-y-3">
           <div className="flex items-center gap-3">
             <div className="flex flex-col">
