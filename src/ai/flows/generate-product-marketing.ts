@@ -12,6 +12,7 @@ const GenerateProductMarketingInputSchema = z.object({
   description: z.string().describe("A brief description of the product."),
   targetAudience: z.string().describe("The intended audience."),
   platform: z.enum(['Instagram', 'TikTok', 'Facebook', 'LinkedIn']).describe("The platform for the marketing content."),
+  productImage: z.string().optional().describe("A photo of the product, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."),
 });
 export type GenerateProductMarketingInput = z.infer<typeof GenerateProductMarketingInputSchema>;
 
@@ -34,6 +35,7 @@ const productMarketingPrompt = ai.definePrompt({
   Description: {{description}}
   Audience: {{targetAudience}}
   Platform: {{platform}}
+  {{#if productImage}}Product Image Provided: {{media url=productImage}}{{/if}}
   
   Generate a high-converting marketing package for this product. 
   The copy should be persuasive, highlight benefits over features, and fit the style of {{platform}}.
@@ -51,6 +53,7 @@ const generateProductMarketingFlow = ai.defineFlow(
     outputSchema: GenerateProductMarketingOutputSchema,
   },
   async (input) => {
+    // Note: In a production environment, we would use the productMarketingPrompt(input)
     // Temporarily mocking output for rapid testing
     return {
       headline: `Experience the Future of ${input.category}: ${input.productName}`,

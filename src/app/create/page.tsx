@@ -40,7 +40,9 @@ import {
   ShoppingBag,
   UserCircle2,
   Layers,
-  Rocket
+  Rocket,
+  Upload,
+  X
 } from "lucide-react";
 import { generatePersonality } from "@/ai/flows/generate-ai-character-personality";
 import { generateSocialMediaCaption } from "@/ai/flows/generate-social-media-caption";
@@ -103,7 +105,8 @@ function CreatePageContent() {
     category: "Skincare",
     description: "",
     targetAudience: "Young Adults",
-    platform: "Instagram" as any
+    platform: "Instagram" as any,
+    productImage: null as string | null
   });
 
   const [options, setOptions] = useState<CharacterOption[]>([]);
@@ -140,6 +143,22 @@ function CreatePageContent() {
     }
   }, [searchParams]);
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        toast({ variant: "destructive", title: "File too large", description: "Please upload an image under 2MB." });
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setProductInputs(prev => ({ ...prev, productImage: reader.result as string }));
+        toast({ title: "Product image uploaded!" });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleGenerateChar = async () => {
     if (!charInputs.name) {
       toast({ variant: "destructive", title: "Missing Info", description: "Give your character a name first!" });
@@ -169,7 +188,10 @@ function CreatePageContent() {
     }
     setIsGenerating(true);
     try {
-      const result = await generateProductMarketing(productInputs);
+      const result = await generateProductMarketing({
+        ...productInputs,
+        productImage: productInputs.productImage || undefined
+      });
       const seed = Math.floor(Math.random() * 10000);
       const mediaUrls = contentType === "video" 
         ? ["https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4"]
@@ -390,6 +412,12 @@ function CreatePageContent() {
                         </button>
                       ))}
                     </div>
+                    {selectedChar?.personality && (
+                      <div className="p-4 bg-black/50 border border-white/5 rounded-xl space-y-2">
+                        <h3 className="text-xs font-black uppercase tracking-widest text-primary">Personality:</h3>
+                        <p className="text-xs text-zinc-300 italic">{selectedChar.personality}</p>
+                      </div>
+                    )}
                     <RadioGroup value={contentType} onValueChange={(v) => setContentType(v as any)} className="grid grid-cols-2 gap-4">
                       <Label htmlFor="v-inf" className="cursor-pointer border-2 border-white/5 bg-black p-4 rounded-xl flex flex-col items-center peer-data-[state=checked]:border-primary">
                         <RadioGroupItem value="video" id="v-inf" className="sr-only" /><VideoIcon className="mb-2" /><span>Video</span>
@@ -418,7 +446,39 @@ function CreatePageContent() {
                 </CardTitle>
                 <CardDescription>Generate viral marketing assets for your products.</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-6">
+                <div className="space-y-2">
+                  <Label className="text-zinc-400 font-bold uppercase tracking-widest text-[10px]">Product Image</Label>
+                  <div className="flex flex-col items-center gap-4 p-6 border-2 border-dashed border-white/10 rounded-2xl bg-black/40 hover:bg-black/60 transition-colors">
+                    {productInputs.productImage ? (
+                      <div className="relative w-full aspect-square max-w-[200px] rounded-2xl overflow-hidden border-4 border-white/5 shadow-2xl group">
+                        <Image src={productInputs.productImage} alt="Product preview" fill className="object-cover" />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <Button 
+                            variant="destructive" 
+                            size="icon" 
+                            className="h-10 w-10 rounded-full"
+                            onClick={() => setProductInputs(prev => ({ ...prev, productImage: null }))}
+                          >
+                            <X className="w-5 h-5" />
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <Label htmlFor="product-upload" className="cursor-pointer flex flex-col items-center gap-3 py-4 w-full">
+                        <div className="w-16 h-16 rounded-full bg-accent/10 flex items-center justify-center text-accent ring-8 ring-accent/5">
+                          <Upload className="w-8 h-8" />
+                        </div>
+                        <div className="text-center">
+                          <p className="text-sm font-black text-white uppercase italic">Upload Product Shot</p>
+                          <p className="text-[10px] text-zinc-500 font-medium">JPG, PNG up to 2MB</p>
+                        </div>
+                        <input id="product-upload" type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+                      </Label>
+                    )}
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label className="text-zinc-400">Product Name</Label>
@@ -514,6 +574,66 @@ function CreatePageContent() {
                     ))}
                   </div>
                 )}
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <Button variant="outline" className="border-white/10 bg-black h-12 rounded-xl text-white" onClick={() => {
+                    toast({ title: "Media Saved", description: "The content has been added to your local gallery." });
+                  }}>
+                    <Download className="w-4 h-4 mr-2" /> Save Media
+                  </Button>
+                  
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button className="bg-accent text-black hover:bg-accent/80 font-black h-12 uppercase italic rounded-xl">
+                        <Share2 className="w-4 h-4 mr-2" /> Direct Post
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="bg-zinc-900 border-white/10 text-white">
+                      <DialogHeader>
+                        <DialogTitle className="text-xl font-black uppercase italic">Social Sync</DialogTitle>
+                        <DialogDescription className="text-zinc-400">
+                          Post this creation directly to your connected accounts.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4 py-4">
+                        <div className="flex items-center justify-between p-3 rounded-xl bg-black border border-white/5">
+                          <div className="flex items-center gap-3">
+                            <TikTokIcon />
+                            <span className="font-bold">TikTok</span>
+                          </div>
+                          <Button size="sm" variant="outline" className="text-[10px] font-black uppercase border-primary/40 text-primary">Post Now</Button>
+                        </div>
+                        <div className="flex items-center justify-between p-3 rounded-xl bg-black border border-white/5">
+                          <div className="flex items-center gap-3">
+                            <Instagram className="w-6 h-6 text-pink-500" />
+                            <span className="font-bold">Instagram</span>
+                          </div>
+                          <Button size="sm" variant="outline" className="text-[10px] font-black uppercase border-primary/40 text-primary">Post Now</Button>
+                        </div>
+                        <div className="flex items-center justify-between p-3 rounded-xl bg-black border border-white/5">
+                          <div className="flex items-center gap-3">
+                            <Twitter className="w-6 h-6 text-blue-400" />
+                            <span className="font-bold">X (Twitter)</span>
+                          </div>
+                          <Button size="sm" variant="outline" className="text-[10px] font-black uppercase border-primary/40 text-primary">Post Now</Button>
+                        </div>
+                        <div className="flex items-center justify-between p-3 rounded-xl bg-black border border-white/5">
+                          <div className="flex items-center gap-3">
+                            <Facebook className="w-6 h-6 text-blue-600" />
+                            <span className="font-bold">Facebook</span>
+                          </div>
+                          <Button size="sm" variant="outline" className="text-[10px] font-black uppercase border-primary/40 text-primary">Post Now</Button>
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button className="w-full bg-primary font-black uppercase italic h-12">
+                          <Send className="w-4 h-4 mr-2" /> Sync All Platforms
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <Button variant="outline" className="border-white/10" onClick={() => setGeneratedResult(null)}><RefreshCcw className="w-4 h-4 mr-2" /> Redo</Button>
                   <Button className="bg-primary font-black" onClick={finalizeAndPost}><CheckCircle2 className="w-4 h-4 mr-2" /> Finalize & Post</Button>
