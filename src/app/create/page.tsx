@@ -148,8 +148,13 @@ function CreatePageContent() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      // Limit to 2MB to prevent Server Action body size issues
       if (file.size > 2 * 1024 * 1024) {
-        toast({ variant: "destructive", title: "File too large", description: "Please upload an image under 2MB." });
+        toast({ 
+          variant: "destructive", 
+          title: "File too large", 
+          description: "Please upload an image under 2MB for optimal performance." 
+        });
         return;
       }
       const reader = new FileReader();
@@ -221,7 +226,12 @@ function CreatePageContent() {
       });
       toast({ title: "Marketing campaign ready!" });
     } catch (e: any) {
-      toast({ variant: "destructive", title: "Marketing generation failed", description: e.message });
+      console.error("Marketing generation failed:", e);
+      toast({ 
+        variant: "destructive", 
+        title: "Marketing generation failed", 
+        description: e.message || "Something went wrong during generation. Try a smaller image." 
+      });
     } finally {
       setIsGenerating(false);
     }
