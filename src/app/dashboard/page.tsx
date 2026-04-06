@@ -38,6 +38,7 @@ import { db } from "@/lib/firebase";
 import { collection, query, onSnapshot, orderBy, limit } from "firebase/firestore";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 const chartData = [
   { name: "Mon", views: 4200 },
@@ -72,6 +73,7 @@ type TopPost = {
 };
 
 export default function DashboardPage() {
+  const router = useRouter();
   const [characters, setCharacters] = useState<Character[]>([]);
   const [topPost, setTopPost] = useState<TopPost | null>(null);
 
@@ -113,6 +115,12 @@ export default function DashboardPage() {
   return (
     <main className="min-h-screen bg-black pb-28 pt-8 px-4 overflow-y-auto">
       <div className="max-w-xl mx-auto space-y-8">
+        <div className="animate-in slide-in-from-top-2 duration-500">
+          <p className="text-sm font-black text-white italic tracking-tight">
+            You gained <span className="text-primary">+1,230</span> followers this week 🚀
+          </p>
+        </div>
+
         <header className="flex justify-between items-end">
           <div className="space-y-1">
             <h1 className="text-3xl font-black text-white uppercase italic tracking-tighter">Performance</h1>
