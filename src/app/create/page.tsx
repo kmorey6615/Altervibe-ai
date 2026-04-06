@@ -2,11 +2,9 @@
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Navigation } from "@/components/navigation";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -37,7 +35,7 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel";
 import { db } from "@/lib/firebase";
-import { collection, addDoc, query, onSnapshot, orderBy } from "firebase/firestore";
+import { collection, addDoc, query, onSnapshot, orderBy, doc, getDoc } from "firebase/firestore";
 
 type CharacterOption = {
   id: string;
@@ -46,10 +44,12 @@ type CharacterOption = {
   visualDescription: string;
   catchphrase: string;
   imageUrl: string;
+  aesthetic?: string;
 };
 
 function CreatePageContent() {
   const { toast } = useToast();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [step, setStep] = useState<"character" | "studio">("character");
   const [isGenerating, setIsGenerating] = useState(false);
@@ -93,10 +93,31 @@ function CreatePageContent() {
     return () => unsubscribe();
   }, []);
 
+  // Handle URL params for direct creation
   useEffect(() => {
-    const styleParam = searchParams.get("style");
-    if (styleParam) {
-      setContentStyle(styleParam);
+    const charId = searchParams.get("charId");
+    const type = searchParams.get("type");
+    const style = searchParams.get("style");
+
+    if (charId) {
+      const fetchChar = async () => {
+        const docRef = doc(db, "characters", charId);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          const charData = { id: docSnap.id, ...docSnap.data() } as CharacterOption;
+          setSelectedChar(charData);
+          setStep("studio");
+        }
+      };
+      fetchChar();
+    }
+
+    if (type === "video" || type === "photo") {
+      setContentType(type);
+    }
+
+    if (style) {
+      setContentStyle(style);
     }
   }, [searchParams]);
 
@@ -141,19 +162,19 @@ function CreatePageContent() {
   const handleSaveCharacter = async (option: CharacterOption) => {
     try {
       await addDoc(collection(db, "characters"), {
-        name: charInputs.name,
+        name: charInputs.name || option.name,
         personality: option.personality,
         visualDescription: option.visualDescription,
         catchphrase: option.catchphrase,
         imageUrl: option.imageUrl,
-        aesthetic: charInputs.aesthetic,
+        aesthetic: charInputs.aesthetic || option.aesthetic || "Aesthetic",
         createdAt: new Date().toISOString()
       });
       
       setSelectedChar(option);
       toast({ 
         title: "Saved!",
-        description: `${charInputs.name} is now in your roster.`
+        description: `${charInputs.name || option.name} is now in your roster.`
       });
     } catch (error) {
       console.error("Error saving character:", error);
@@ -183,7 +204,7 @@ function CreatePageContent() {
       const result = await generateSocialMediaCaption({
         characterName: selectedChar.name || charInputs.name,
         characterAge: 20,
-        characterStyle: charInputs.aesthetic,
+        characterStyle: selectedChar.aesthetic || charInputs.aesthetic,
         characterPersonality: selectedChar.personality,
         contentType: contentType,
         contentStyle: styleInput
@@ -221,6 +242,33 @@ function CreatePageContent() {
       });
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const finalizeAndPost = async () => {
+    if (!generatedResult || !selectedChar) return;
+
+    try {
+      await addDoc(collection(db, "posts"), {
+        characterId: selectedChar.id,
+        characterName: selectedChar.name,
+        type: generatedResult.type,
+        mediaUrls: generatedResult.mediaUrls,
+        caption: generatedResult.caption,
+        hashtags: generatedResult.hashtags,
+        createdAt: new Date().toISOString()
+      });
+
+      toast({ title: "Content saved to profile feed!" });
+      setGeneratedResult(null);
+      router.push("/profile");
+    } catch (error) {
+      console.error("Error saving post:", error);
+      toast({
+        variant: "destructive",
+        title: "Failed to post",
+        description: "Could not save your creation to the cloud."
+      });
     }
   };
 
@@ -317,10 +365,10 @@ function CreatePageContent() {
 
                   <div className="space-y-2">
                     <Label htmlFor="outfits">Outfit Concepts</Label>
-                    <Textarea 
+                    <textarea 
                       id="outfits" 
                       placeholder="Chrome jackets, holographic boots, oversized streetwear..." 
-                      className="bg-black border-white/10 min-h-[80px]"
+                      className="flex min-h-[80px] w-full rounded-md border border-white/10 bg-black px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                       value={charInputs.outfitIdeas}
                       onChange={(e) => setCharInputs({...charInputs, outfitIdeas: e.target.value})}
                     />
@@ -500,9 +548,9 @@ function CreatePageContent() {
                       <Wand2 className="w-3 h-3 text-primary" />
                       Director's Notes (Prompt)
                     </Label>
-                    <Textarea 
+                    <textarea 
                       placeholder="e.g. Walking through a rainy neon marketplace, wearing chrome streetwear..." 
-                      className="bg-black border-white/10 min-h-[100px] resize-none focus:ring-primary"
+                      className="flex min-h-[100px] w-full rounded-md border border-white/10 bg-black px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                       value={userPrompt}
                       onChange={(e) => setUserPrompt(e.target.value)}
                     />
@@ -579,10 +627,7 @@ function CreatePageContent() {
                       </Button>
                     </div>
 
-                    <Button className="w-full bg-primary font-black h-14 uppercase italic text-lg rounded-xl shadow-xl shadow-primary/20" onClick={() => {
-                      setGeneratedResult(null);
-                      toast({ title: "Content saved to profile feed!" });
-                    }}>
+                    <Button className="w-full bg-primary font-black h-14 uppercase italic text-lg rounded-xl shadow-xl shadow-primary/20" onClick={finalizeAndPost}>
                       <CheckCircle2 className="w-6 h-6 mr-2" /> Finalize & Post
                     </Button>
                   </CardContent>
